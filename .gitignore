@@ -1,0 +1,17 @@
+build/
+install/
+log/
+logs/
+.codex
+Micro-XRCE-DDS-Agent/
+
+__pycache__/
+*.pyc
+*.log
+*.bag
+*.db3
+*.mcap
+
+.DS_Store
+.vscode/
+.idea/
