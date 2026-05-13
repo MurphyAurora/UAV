@@ -1,8 +1,0 @@
-需要安装
-ROS 2 Jazzy
-PX4-Autopilot
-MicroXRCEAgent
-Gazebo/gz
-colcon
-tf_transformations
-px4_msgs
