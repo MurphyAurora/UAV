@@ -9,6 +9,7 @@ import os
 import time
 import sys
 import heapq
+from obstacle_config import WallObstacle, load_obstacle_config, normalized_target, normalized_walls, obstacles_from_config
 
 class FixedPointMission(Node):
     def __init__(self, num_drones=1, leader_id=1, metrics_csv_path=''):
@@ -20,6 +21,7 @@ class FixedPointMission(Node):
         self.latest_states = {}
         self.latest_target_markers = {}
         self.latest_target_stamp = 0.0
+        self.obstacles = None
         self._last_metric_log_t = 0.0
         self._last_failsafe_log_t = 0.0
         self.metrics_csv_path = metrics_csv_path
@@ -243,15 +245,10 @@ class FixedPointMission(Node):
             },
         ]
 
-    def _point_in_wall_rect(self, x, y, wall_x, wall_y, wall_length, wall_thickness, inflation):
-        half_x = max(0.05, float(wall_thickness) * 0.5) + float(inflation)
-        half_y = max(0.5, float(wall_length) * 0.5) + float(inflation)
-        return (
-            abs(float(x) - float(wall_x)) <= half_x
-            and abs(float(y) - float(wall_y)) <= half_y
-        )
+    def _point_in_obstacles(self, x, y, obstacles, inflation):
+        return any(obs.contains_xy(x, y, inflation) for obs in obstacles)
 
-    def _segment_hits_wall_rect(self, a_xy, b_xy, wall_x, wall_y, wall_length, wall_thickness, inflation, step):
+    def _segment_hits_obstacles(self, a_xy, b_xy, obstacles, inflation, step):
         ax, ay = float(a_xy[0]), float(a_xy[1])
         bx, by = float(b_xy[0]), float(b_xy[1])
         dist = math.hypot(bx - ax, by - ay)
@@ -260,11 +257,11 @@ class FixedPointMission(Node):
             t = float(k) / float(samples)
             x = ax + (bx - ax) * t
             y = ay + (by - ay) * t
-            if self._point_in_wall_rect(x, y, wall_x, wall_y, wall_length, wall_thickness, inflation):
+            if self._point_in_obstacles(x, y, obstacles, inflation):
                 return True
         return False
 
-    def _simplify_xy_path(self, path_xy, wall_x, wall_y, wall_length, wall_thickness, inflation, resolution):
+    def _simplify_xy_path_for_obstacles(self, path_xy, obstacles, inflation, resolution):
         if len(path_xy) <= 2:
             return path_xy
         simplified = [path_xy[0]]
@@ -272,13 +269,10 @@ class FixedPointMission(Node):
         while i < len(path_xy) - 1:
             j = len(path_xy) - 1
             while j > i + 1:
-                if not self._segment_hits_wall_rect(
+                if not self._segment_hits_obstacles(
                     path_xy[i],
                     path_xy[j],
-                    wall_x,
-                    wall_y,
-                    wall_length,
-                    wall_thickness,
+                    obstacles,
                     inflation,
                     max(float(resolution) * 0.5, 0.2),
                 ):
@@ -288,14 +282,11 @@ class FixedPointMission(Node):
             i = j
         return simplified
 
-    def _filter_min_waypoint_dist(
+    def _filter_min_waypoint_dist_for_obstacles(
         self,
         path_xy,
         min_waypoint_dist,
-        wall_x,
-        wall_y,
-        wall_length,
-        wall_thickness,
+        obstacles,
         inflation,
         resolution,
     ):
@@ -308,13 +299,10 @@ class FixedPointMission(Node):
                 filtered.append(candidate)
                 continue
             next_point = path_xy[idx + 1]
-            if self._segment_hits_wall_rect(
+            if self._segment_hits_obstacles(
                 filtered[-1],
                 next_point,
-                wall_x,
-                wall_y,
-                wall_length,
-                wall_thickness,
+                obstacles,
                 inflation,
                 max(float(resolution) * 0.5, 0.2),
             ):
@@ -364,12 +352,57 @@ class FixedPointMission(Node):
             inflation = auto_inflation
             inflation_source = 'auto'
         padding = max(6.0, inflation + 3.0)
-        wall_half = max(0.5, float(wall_length) * 0.5)
+        obstacles = list(self.obstacles or [])
+        if not obstacles:
+            obstacles = [
+                WallObstacle(
+                    name='front_wall',
+                    x=float(wall_x),
+                    y=float(wall_y),
+                    z=0.0,
+                    length=float(wall_length),
+                    thickness=float(wall_thickness),
+                    height=1.8,
+                )
+            ]
+        if not self.obstacles and int(self._finite_float(os.environ.get('SECOND_WALL_ENABLE', 1), 1)) != 0:
+            second_dx = self._finite_float(os.environ.get('SECOND_WALL_DX', 15.0), 15.0)
+            rear_gap = self._finite_float(os.environ.get('REAR_WALL_GAP', 18.0), 18.0)
+            rear_wall_length = max(
+                float(wall_length),
+                self._finite_float(os.environ.get('REAR_WALL_LENGTH', 200.0), 200.0),
+            )
+            default_second_dy = (rear_wall_length + rear_gap) * 0.5
+            second_dy = self._finite_float(os.environ.get('SECOND_WALL_DY', default_second_dy), default_second_dy)
+            obstacles.append(
+                WallObstacle(
+                    name='rear_right_wall',
+                    x=float(wall_x) + second_dx,
+                    y=float(wall_y) + second_dy,
+                    z=0.0,
+                    length=rear_wall_length,
+                    thickness=float(wall_thickness),
+                    height=1.8,
+                )
+            )
+            if int(self._finite_float(os.environ.get('THIRD_WALL_ENABLE', 1), 1)) != 0:
+                obstacles.append(
+                    WallObstacle(
+                        name='rear_left_wall',
+                        x=float(wall_x) + second_dx,
+                        y=float(wall_y) - second_dy,
+                        z=0.0,
+                        length=rear_wall_length,
+                        thickness=float(wall_thickness),
+                        height=1.8,
+                    )
+                )
 
-        min_x = min(sx, gx, float(wall_x)) - padding
-        max_x = max(sx, gx, float(wall_x)) + padding
-        min_y = min(sy, gy, float(wall_y) - wall_half - inflation) - padding
-        max_y = max(sy, gy, float(wall_y) + wall_half + inflation) + padding
+        bounds = [obs.bounds_xy(inflation) for obs in obstacles]
+        min_x = min([sx, gx] + [b[0] for b in bounds]) - padding
+        max_x = max([sx, gx] + [b[1] for b in bounds]) + padding
+        min_y = min([sy, gy] + [b[2] for b in bounds]) - padding
+        max_y = max([sy, gy] + [b[3] for b in bounds]) + padding
         width = int(math.ceil((max_x - min_x) / resolution)) + 1
         height = int(math.ceil((max_y - min_y) / resolution)) + 1
 
@@ -389,7 +422,7 @@ class FixedPointMission(Node):
 
         def blocked(cell):
             x, y = to_xy(cell)
-            return self._point_in_wall_rect(x, y, wall_x, wall_y, wall_length, wall_thickness, inflation)
+            return self._point_in_obstacles(x, y, obstacles, inflation)
 
         start = to_cell(sx, sy)
         goal = to_cell(gx, gy)
@@ -434,24 +467,18 @@ class FixedPointMission(Node):
                 cells.reverse()
                 raw_xy = [(sx, sy)] + [to_xy(c) for c in cells[1:-1]] + [(gx, gy)]
                 if smooth_enable:
-                    simplified_xy = self._simplify_xy_path(
+                    simplified_xy = self._simplify_xy_path_for_obstacles(
                         raw_xy,
-                        wall_x,
-                        wall_y,
-                        wall_length,
-                        wall_thickness,
+                        obstacles,
                         inflation,
                         resolution,
                     )
                 else:
                     simplified_xy = raw_xy
-                filtered_xy = self._filter_min_waypoint_dist(
+                filtered_xy = self._filter_min_waypoint_dist_for_obstacles(
                     simplified_xy,
                     min_waypoint_dist,
-                    wall_x,
-                    wall_y,
-                    wall_length,
-                    wall_thickness,
+                    obstacles,
                     inflation,
                     resolution,
                 )
@@ -467,6 +494,7 @@ class FixedPointMission(Node):
                 self.get_logger().info(
                     f"A* planner: resolution={resolution:.2f}, grid={width}x{height}, "
                     f"inflation={inflation:.2f}({inflation_source}), "
+                    f"obstacles={len(obstacles)}, "
                     f"min_waypoint_dist={min_waypoint_dist:.2f}, smooth={int(smooth_enable)}, "
                     f"raw_points={len(raw_xy)}, simplified_points={len(simplified_xy)}, "
                     f"waypoints={len(waypoints)}, path_length={path_length:.2f}, "
@@ -1212,7 +1240,26 @@ def main():
     metrics_csv_path = str(sys.argv[20]) if len(sys.argv) > 20 else ''
     mission_start_x = float(sys.argv[21]) if len(sys.argv) > 21 else 0.0
     use_spawned_formation = bool(int(sys.argv[22])) if len(sys.argv) > 22 else False
+    target_y = float(sys.argv[23]) if len(sys.argv) > 23 else wall_y
     path_planner_mode = os.environ.get('PATH_PLANNER_MODE', 'astar').strip().lower()
+    obstacle_config_path = os.environ.get('OBSTACLE_CONFIG', '').strip()
+    config_obstacles = []
+    config_walls = []
+    config_target = None
+    if obstacle_config_path:
+        obstacle_config = load_obstacle_config(obstacle_config_path)
+        config_obstacles = obstacles_from_config(obstacle_config)
+        config_walls = normalized_walls(obstacle_config)
+        config_target = normalized_target(obstacle_config)
+        if config_walls:
+            wall_x = float(config_walls[0]['x'])
+            wall_y = float(config_walls[0]['y'])
+            wall_length = float(config_walls[0]['length'])
+        if config_target:
+            target_x = float(config_target['x'])
+            target_y = float(config_target['y'])
+            mission_z = float(config_target['z'])
+            y_spacing = float(config_target['y_spacing'])
 
     rclpy.init()
     node = FixedPointMission(
@@ -1220,6 +1267,7 @@ def main():
         leader_id=leader_id,
         metrics_csv_path=metrics_csv_path,
     )
+    vertical_takeoff = bool(int(node._finite_float(os.environ.get('VERTICAL_TAKEOFF', 1), 1)))
 
     # 两种流程：无障碍主从跟随 / 墙前绕行
     takeoff_stage = {}
@@ -1229,6 +1277,7 @@ def main():
     world_wall_x = wall_x
     world_wall_y = wall_y
     world_target_x = target_x
+    world_target_y = target_y
     if use_spawned_formation:
         # PX4 local NED starts from each spawned vehicle origin. The visual wall/target
         # stay in world NED, so convert x into each vehicle's local frame. Lateral
@@ -1237,10 +1286,25 @@ def main():
         wall_x = world_wall_x - mission_start_x
         wall_y = 0.0
         target_x = world_target_x - mission_start_x
+        target_y = world_target_y - world_wall_y
         node.get_logger().info(
             f"spawned-formation local frame: world_wall_x={world_wall_x:.2f}, "
-            f"world_target_x={world_target_x:.2f}, spawn_x={mission_start_x:.2f} -> "
-            f"local_wall_x={wall_x:.2f}, local_target_x={target_x:.2f}"
+            f"world_target=({world_target_x:.2f},{world_target_y:.2f}), "
+            f"spawn=({mission_start_x:.2f},{world_wall_y:.2f}) -> "
+            f"local_wall_x={wall_x:.2f}, local_target=({target_x:.2f},{target_y:.2f})"
+        )
+
+    if config_walls:
+        if use_spawned_formation:
+            node.obstacles = [
+                obs.translated(dx=-mission_start_x, dy=-world_wall_y)
+                for obs in config_obstacles
+            ]
+        else:
+            node.obstacles = config_obstacles
+        node.get_logger().info(
+            f"obstacle config loaded: path={obstacle_config_path}, obstacles={len(node.obstacles)}, "
+            f"target=({target_x:.2f},{target_y:.2f},{mission_z:.2f})"
         )
 
     wall_half = max(0.5, wall_length * 0.5)
@@ -1250,10 +1314,26 @@ def main():
     lower_side_span = max(0.0, float(leader_id - 1) * y_spacing)
     upper_side_span = max(0.0, float(num_drones - leader_id) * y_spacing)
     bypass_margin = 1.8
+    second_wall_enable = int(node._finite_float(os.environ.get('SECOND_WALL_ENABLE', 1), 1)) != 0
+    second_wall_dx = node._finite_float(os.environ.get('SECOND_WALL_DX', 15.0), 15.0)
+    rear_wall_gap = node._finite_float(os.environ.get('REAR_WALL_GAP', 18.0), 18.0)
+    rear_wall_length = max(wall_length, node._finite_float(os.environ.get('REAR_WALL_LENGTH', 200.0), 200.0))
+    default_second_wall_dy = (rear_wall_length + rear_wall_gap) * 0.5
+    second_wall_dy = node._finite_float(os.environ.get('SECOND_WALL_DY', default_second_wall_dy), default_second_wall_dy)
+    third_wall_enable = int(node._finite_float(os.environ.get('THIRD_WALL_ENABLE', 1), 1)) != 0
+    wall_y_for_bypass = wall_y
+    if second_wall_enable:
+        wall_y_candidates = [wall_y, wall_y + second_wall_dy]
+        if third_wall_enable:
+            wall_y_candidates.append(wall_y - second_wall_dy)
+        if route_side == 'upper':
+            wall_y_for_bypass = max(wall_y_candidates)
+        else:
+            wall_y_for_bypass = min(wall_y_candidates)
     if route_side == 'upper':
-        bypass_y_base = wall_y + wall_half + bypass_margin + lower_side_span
+        bypass_y_base = wall_y_for_bypass + wall_half + bypass_margin + lower_side_span
     else:
-        bypass_y_base = wall_y - wall_half - bypass_margin - upper_side_span
+        bypass_y_base = wall_y_for_bypass - wall_half - bypass_margin - upper_side_span
     pre_wall_x = wall_x - 3.5
     wall_cross_x = wall_x + 6.0
     for i in range(1, num_drones + 1):
@@ -1266,12 +1346,18 @@ def main():
             y_offset = wall_y + formation_offset
             bypass_y = bypass_y_base + formation_offset
             follower_offsets[i] = (0.0, formation_offset, 0.0)
-        if mission_mode == 'follow_target':
-            takeoff_stage[i] = (0.0 if use_spawned_formation else mission_start_x, y_offset, takeoff_z)
-            target_stage[i] = (target_x, y_offset, takeoff_z)
+        if vertical_takeoff:
+            takeoff_x = 0.0
+            takeoff_y = 0.0
         else:
-            takeoff_stage[i] = (0.0 if use_spawned_formation else mission_start_x, y_offset, takeoff_z)
-            target_stage[i] = (target_x, y_offset if use_spawned_formation else bypass_y, mission_z)
+            takeoff_x = 0.0 if use_spawned_formation else mission_start_x
+            takeoff_y = y_offset
+        if mission_mode == 'follow_target':
+            takeoff_stage[i] = (takeoff_x, takeoff_y, takeoff_z)
+            target_stage[i] = (target_x, target_y if use_spawned_formation else y_offset, takeoff_z)
+        else:
+            takeoff_stage[i] = (takeoff_x, takeoff_y, takeoff_z)
+            target_stage[i] = (target_x, target_y if use_spawned_formation else bypass_y, mission_z)
 
     node.get_logger().info(
         f"主从设定: leader=x500_{leader_id}, followers={[i for i in range(1, num_drones + 1) if i != leader_id]}"
@@ -1294,7 +1380,14 @@ def main():
             f"绕墙规划: wall_x={wall_x:.2f}, wall_y={wall_y:.2f}, wall_length={wall_length:.2f}, "
             f"mission_start_x={mission_start_x:.2f}, pre_wall_x={pre_wall_x:.2f}, "
             f"bypass_y_base={bypass_y_base:.2f}, wall_cross_x={wall_cross_x:.2f}, "
-            f"path_planner_mode={path_planner_mode}"
+            f"path_planner_mode={path_planner_mode}, second_wall={int(second_wall_enable)}, "
+            f"third_wall={int(third_wall_enable)}, rear_wall_gap={rear_wall_gap:.2f}, "
+            f"rear_wall_length={rear_wall_length:.2f}, "
+            f"rear_wall_offsets=({second_wall_dx:.2f},+/-{second_wall_dy:.2f})"
+        )
+        node.get_logger().info(
+            f"起飞模式: vertical_takeoff={int(vertical_takeoff)} "
+            f"(1=stage1保持本地x/y=0，仅改变z)"
         )
         if use_heading_offsets:
             node.get_logger().warn('绕墙任务使用世界坐标队形，已自动关闭 heading offset 旋转，避免队形参考点转向墙体')

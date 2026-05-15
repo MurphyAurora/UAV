@@ -13,6 +13,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 from std_msgs.msg import String
+from obstacle_config import WallObstacle, load_obstacle_config, normalized_target, normalized_walls, obstacles_from_config
 
 
 class DynamicObstacleSource(Node):
@@ -56,6 +57,12 @@ class DynamicObstacleSource(Node):
         self.declare_parameter('wall_thickness', 0.25)
         self.declare_parameter('wall_height', 1.8)
         self.declare_parameter('wall_segment_spacing', 0.6)
+        self.declare_parameter('obstacle_config', '')
+        self.declare_parameter('second_wall_enable', 1)
+        self.declare_parameter('second_wall_dx', 15.0)
+        self.declare_parameter('second_wall_dy', 109.0)
+        self.declare_parameter('rear_wall_length', 200.0)
+        self.declare_parameter('third_wall_enable', 1)
         self.declare_parameter('target_ball_enable', 1)
         self.declare_parameter('target_ball_num_drones', 3)
         self.declare_parameter('target_ball_leader_id', 1)
@@ -167,9 +174,10 @@ class DynamicObstacleSource(Node):
             self.get_logger().warn(f'visual obstacle sdf not found: {sdf_path}')
             return
         if self.mode == 'static_wall':
-            wall_x_ned = float(self._p('wall_x'))
-            wall_y_ned = float(self._p('wall_y'))
-            wall_z = float(self._p('wall_z'))
+            base_wall = self._configured_walls()[0]
+            wall_x_ned = float(base_wall['x'])
+            wall_y_ned = float(base_wall['y'])
+            wall_z = float(base_wall['z'])
             wall_x_enu, wall_y_enu, _ = self._ned_to_enu(wall_x_ned, wall_y_ned, 0.0)
             req = (
                 f'name: "{entity_name}", '
@@ -217,33 +225,17 @@ class DynamicObstacleSource(Node):
             self.get_logger().warn('gazebo visual obstacle spawn failed (gz transport)')
 
     def _prepare_wall_sdf(self):
-        thickness = max(0.1, float(self._p('wall_thickness')))
-        length = max(1.0, float(self._p('wall_length')))
-        height = max(0.5, float(self._p('wall_height')))
+        obstacles = self._configured_obstacles()
+        base = obstacles[0]
+        link_sdf = ''.join(
+            obs.to_sdf_link(base_x=base.x, base_y=base.y, base_z=base.z, index=idx)
+            for idx, obs in enumerate(obstacles)
+        )
         sdf = f"""<?xml version="1.0" ?>
 <sdf version="1.7">
   <model name="static_obstacle_wall">
     <static>true</static>
-    <link name="wall_link">
-      <collision name="wall_collision">
-        <geometry>
-          <box>
-            <size>{thickness:.3f} {length:.3f} {height:.3f}</size>
-          </box>
-        </geometry>
-      </collision>
-      <visual name="wall_visual">
-        <geometry>
-          <box>
-            <size>{thickness:.3f} {length:.3f} {height:.3f}</size>
-          </box>
-        </geometry>
-        <material>
-          <ambient>0.55 0.55 0.55 1</ambient>
-          <diffuse>0.55 0.55 0.55 1</diffuse>
-        </material>
-      </visual>
-    </link>
+{link_sdf}
   </model>
 </sdf>
 """
@@ -251,7 +243,7 @@ class DynamicObstacleSource(Node):
         with open(tmp_path, 'w', encoding='utf-8') as f:
             f.write(sdf)
         self.get_logger().info(
-            f'wall visual sdf prepared: path={tmp_path}, size=({thickness:.2f},{length:.2f},{height:.2f})'
+            f'wall visual sdf prepared from config: path={tmp_path}, obstacles={len(obstacles)}'
         )
         return tmp_path
 
@@ -289,10 +281,10 @@ class DynamicObstacleSource(Node):
             self.get_logger().warn(f'target ball sdf not found: {sdf_path}')
             return
 
-        target_x = float(self.get_parameter('target_ball_target_x').value)
-        target_z = float(self.get_parameter('target_ball_target_z').value)
-        base_y = float(self.get_parameter('target_ball_base_y').value)
-        target_y = base_y
+        target_cfg = self._configured_target()
+        target_x = float(target_cfg['x'])
+        target_z = float(target_cfg['z'])
+        target_y = float(target_cfg['y'])
         enu_x, enu_y, enu_z = self._ned_to_enu(target_x, target_y, target_z)
 
         req = (
@@ -346,10 +338,11 @@ class DynamicObstacleSource(Node):
 
         num_drones = max(1, int(self.get_parameter('target_ball_num_drones').value))
         leader_id = int(self.get_parameter('target_ball_leader_id').value)
-        target_x = float(self.get_parameter('target_ball_target_x').value)
-        target_z = float(self.get_parameter('target_ball_target_z').value)
-        base_y = float(self.get_parameter('target_ball_base_y').value)
-        spacing = float(self.get_parameter('target_ball_y_spacing').value)
+        target_cfg = self._configured_target()
+        target_x = float(target_cfg['x'])
+        target_z = float(target_cfg['z'])
+        base_y = float(target_cfg['y'])
+        spacing = float(target_cfg['y_spacing'])
 
         markers = []
         for i in range(1, num_drones + 1):
@@ -416,47 +409,91 @@ class DynamicObstacleSource(Node):
         cy = start_y + (active_y - start_y) * ratio
         return cx, cy
 
+    def _configured_walls(self):
+        config_path = str(self.get_parameter('obstacle_config').value or '').strip()
+        if config_path:
+            return normalized_walls(load_obstacle_config(config_path))
+
+        wall_x_ned = float(self._p('wall_x'))
+        wall_y_ned = float(self._p('wall_y'))
+        wall_length = max(1.0, float(self._p('wall_length')))
+        rear_wall_length = max(wall_length, float(self._p('rear_wall_length')))
+        wall = {
+            'name': 'front_wall',
+            'x': wall_x_ned,
+            'y': wall_y_ned,
+            'z': float(self._p('wall_z')),
+            'length': wall_length,
+            'thickness': max(0.1, float(self._p('wall_thickness'))),
+            'height': max(0.5, float(self._p('wall_height'))),
+            'segment_spacing': max(0.2, float(self._p('wall_segment_spacing'))),
+        }
+        walls = [wall]
+        if int(self._p('second_wall_enable')) != 0:
+            walls.append(
+                {
+                    **wall,
+                    'name': 'rear_right_wall',
+                    'x': wall_x_ned + float(self._p('second_wall_dx')),
+                    'y': wall_y_ned + float(self._p('second_wall_dy')),
+                    'length': rear_wall_length,
+                }
+            )
+        if int(self._p('third_wall_enable')) != 0:
+            walls.append(
+                {
+                    **wall,
+                    'name': 'rear_left_wall',
+                    'x': wall_x_ned + float(self._p('second_wall_dx')),
+                    'y': wall_y_ned - float(self._p('second_wall_dy')),
+                    'length': rear_wall_length,
+                }
+            )
+        return walls
+
+    def _configured_obstacles(self):
+        config_path = str(self.get_parameter('obstacle_config').value or '').strip()
+        if config_path:
+            return obstacles_from_config(load_obstacle_config(config_path))
+        return [WallObstacle(**wall) for wall in self._configured_walls()]
+
+    def _configured_target(self):
+        config_path = str(self.get_parameter('obstacle_config').value or '').strip()
+        if config_path:
+            return normalized_target(load_obstacle_config(config_path))
+        return {
+            'x': float(self.get_parameter('target_ball_target_x').value),
+            'y': float(self.get_parameter('target_ball_base_y').value),
+            'z': float(self.get_parameter('target_ball_target_z').value),
+            'y_spacing': float(self.get_parameter('target_ball_y_spacing').value),
+        }
+
     def _publish(self):
         t = time.time() - self.t0
         z = self._p('z')
 
         if self.mode == 'static_wall':
-            wall_x_ned = self._p('wall_x')
-            wall_y_ned = self._p('wall_y')
-            wall_length = max(1.0, self._p('wall_length'))
-            wall_thickness = max(0.1, self._p('wall_thickness'))
-            wall_segment_spacing = max(0.2, self._p('wall_segment_spacing'))
-            segment_radius = max(0.25, wall_thickness * 0.5 + 0.15)
-            segment_count = max(3, int(wall_length / wall_segment_spacing) + 1)
-            half_span = wall_length * 0.5
-            step = wall_length / max(1, segment_count - 1)
+            obstacles_cfg = self._configured_obstacles()
+            base_obstacle = obstacles_cfg[0]
+            wall_x_ned = float(base_obstacle.x)
+            wall_y_ned = float(base_obstacle.y)
             obstacles = []
-            for idx in range(segment_count):
-                ned_x = wall_x_ned
-                ned_y = wall_y_ned - half_span + step * idx
-                ned_z = 0.0
-                obstacles.append(
-                    {
-                        'obs_id': idx + 1,
-                        'x': ned_x,
-                        'y': ned_y,
-                        'z': ned_z,
-                        'vx': 0.0,
-                        'vy': 0.0,
-                        'vz': 0.0,
-                        'radius': segment_radius,
-                    }
-                )
+            obs_id = 1
+            for obs in obstacles_cfg:
+                points = obs.to_collision_points(start_obs_id=obs_id)
+                obstacles.extend(points)
+                obs_id += len(points)
             payload = {'stamp': time.time(), 'obstacles': obstacles}
             x, y, _ = self._ned_to_enu(wall_x_ned, wall_y_ned, 0.0)
             vx = 0.0
             vy = 0.0
-            r = segment_radius
+            r = getattr(base_obstacle, 'radius', 0.3)
 
             # Compute current target ball ENU pose from NED target parameters.
-            target_x_ned = float(self.get_parameter('target_ball_target_x').value)
-            target_z_ned = float(self.get_parameter('target_ball_target_z').value)
-            base_y_ned = float(self.get_parameter('target_ball_base_y').value)
+            target_cfg = self._configured_target()
+            target_x_ned = float(target_cfg['x'])
+            target_z_ned = float(target_cfg['z'])
+            base_y_ned = float(target_cfg['y'])
             target_y_ned = base_y_ned
             target_ball_enu = self._ned_to_enu(target_x_ned, target_y_ned, target_z_ned)
         else:
@@ -590,6 +627,12 @@ def main():
     parser.add_argument('--wall-thickness', type=float, default=0.25)
     parser.add_argument('--wall-height', type=float, default=1.8)
     parser.add_argument('--wall-segment-spacing', type=float, default=0.6)
+    parser.add_argument('--obstacle-config', type=str, default='')
+    parser.add_argument('--second-wall-enable', type=int, default=1)
+    parser.add_argument('--second-wall-dx', type=float, default=15.0)
+    parser.add_argument('--second-wall-dy', type=float, default=109.0)
+    parser.add_argument('--rear-wall-length', type=float, default=200.0)
+    parser.add_argument('--third-wall-enable', type=int, default=1)
     parser.add_argument('--target-ball-enable', '--target-marker-enable', dest='target_ball_enable', type=int, default=1)
     parser.add_argument('--target-ball-num-drones', '--target-marker-num-drones', dest='target_ball_num_drones', type=int, default=3)
     parser.add_argument('--target-ball-leader-id', '--target-marker-leader-id', dest='target_ball_leader_id', type=int, default=1)
@@ -620,6 +663,12 @@ def main():
         Parameter('wall_thickness', Parameter.Type.DOUBLE, float(args.wall_thickness)),
         Parameter('wall_height', Parameter.Type.DOUBLE, float(args.wall_height)),
         Parameter('wall_segment_spacing', Parameter.Type.DOUBLE, float(args.wall_segment_spacing)),
+        Parameter('obstacle_config', Parameter.Type.STRING, str(args.obstacle_config)),
+        Parameter('second_wall_enable', Parameter.Type.INTEGER, int(args.second_wall_enable)),
+        Parameter('second_wall_dx', Parameter.Type.DOUBLE, float(args.second_wall_dx)),
+        Parameter('second_wall_dy', Parameter.Type.DOUBLE, float(args.second_wall_dy)),
+        Parameter('rear_wall_length', Parameter.Type.DOUBLE, float(args.rear_wall_length)),
+        Parameter('third_wall_enable', Parameter.Type.INTEGER, int(args.third_wall_enable)),
         Parameter('target_ball_enable', Parameter.Type.INTEGER, int(args.target_ball_enable)),
         Parameter('target_ball_num_drones', Parameter.Type.INTEGER, int(args.target_ball_num_drones)),
         Parameter('target_ball_leader_id', Parameter.Type.INTEGER, int(args.target_ball_leader_id)),

@@ -1,0 +1,35 @@
+# Coordinates are in the swarm-control NED frame.
+# Edit this file when you want to change the obstacle scene.
+walls:
+  - name: front_wall
+    x: 3.0
+    y: 1.0
+    z: 0.9
+    length: 30.0
+    thickness: 0.25
+    height: 4.8
+    segment_spacing: 0.6
+
+  - name: rear_right_wall
+    x: 18.0
+    y: 110.0
+    z: 0.9
+    length: 200.0
+    thickness: 0.25
+    height: 4.8
+    segment_spacing: 0.6
+
+  - name: rear_left_wall
+    x: 18.0
+    y: -108.0
+    z: 0.9
+    length: 200.0
+    thickness: 0.25
+    height: 4.8
+    segment_spacing: 0.6
+
+target:
+  x: 30.0
+  y: 26.0
+  z: -3.0
+  y_spacing: 1.8
