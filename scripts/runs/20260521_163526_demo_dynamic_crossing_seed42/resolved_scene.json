@@ -1,0 +1,97 @@
+{
+  "difficulty": {
+    "expected_crossing_events": 1,
+    "level": "easy",
+    "max_obstacle_speed": 1.4,
+    "notes": "Small reproducible demo before wiring into ROS."
+  },
+  "dynamic_obstacles": [
+    {
+      "name": "crossing_ball_1",
+      "radius": 0.55,
+      "trajectory": {
+        "end": [
+          10.0,
+          14.0,
+          -3.0
+        ],
+        "speed": 1.0,
+        "start": [
+          10.0,
+          -10.0,
+          -3.0
+        ],
+        "start_time": 4.0,
+        "type": "line"
+      },
+      "type": "sphere"
+    },
+    {
+      "name": "patrol_ball_1",
+      "radius": 0.45,
+      "trajectory": {
+        "angular_speed": 0.35,
+        "center": [
+          18.0,
+          8.0,
+          -3.0
+        ],
+        "phase": 0.0,
+        "radius": 4.0,
+        "start_time": 0.0,
+        "type": "circle"
+      },
+      "type": "sphere"
+    }
+  ],
+  "scene": {
+    "dt": 0.5,
+    "duration": 30.0,
+    "level": "easy",
+    "name": "demo_dynamic_crossing",
+    "seed": 42,
+    "version": 1
+  },
+  "static_obstacles": {
+    "walls": [
+      {
+        "height": 4.8,
+        "length": 30.0,
+        "name": "front_wall",
+        "segment_spacing": 0.6,
+        "thickness": 0.25,
+        "x": 3.0,
+        "y": 1.0,
+        "z": 0.9
+      }
+    ]
+  },
+  "swarm": {
+    "formation": "line",
+    "leader_id": 1,
+    "num_drones": 5,
+    "y_spacing": 1.8
+  },
+  "target": {
+    "x": 30.0,
+    "y": 26.0,
+    "z": -3.0
+  },
+  "world": {
+    "bounds": {
+      "x": [
+        0.0,
+        35.0
+      ],
+      "y": [
+        -15.0,
+        30.0
+      ],
+      "z": [
+        -5.0,
+        0.0
+      ]
+    },
+    "frame": "NED"
+  }
+}

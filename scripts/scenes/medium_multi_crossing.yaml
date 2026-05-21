@@ -1,0 +1,76 @@
+scene:
+  name: medium_multi_crossing
+  version: 1
+  seed: 202
+  level: medium
+  duration: 40.0
+  dt: 0.5
+
+world:
+  frame: NED
+  bounds:
+    x: [0.0, 40.0]
+    y: [-18.0, 32.0]
+    z: [-5.0, 0.0]
+
+swarm:
+  num_drones: 5
+  leader_id: 1
+  formation: line
+  y_spacing: 1.8
+
+target:
+  x: 32.0
+  y: 24.0
+  z: -3.0
+
+static_obstacles:
+  walls:
+    - name: front_wall
+      x: 4.0
+      y: 1.0
+      z: 0.9
+      length: 28.0
+      thickness: 0.25
+      height: 4.8
+      segment_spacing: 0.6
+
+dynamic_obstacles:
+  - name: crossing_ball_left
+    type: sphere
+    radius: 0.50
+    trajectory:
+      type: line
+      start: [11.0, -12.0, -3.0]
+      end: [11.0, 16.0, -3.0]
+      speed: 0.9
+      start_time: 4.0
+
+  - name: crossing_ball_right
+    type: sphere
+    radius: 0.50
+    trajectory:
+      type: line
+      start: [17.0, 18.0, -3.0]
+      end: [17.0, -10.0, -3.0]
+      speed: 1.0
+      start_time: 8.0
+
+  - name: center_patrol_ball
+    type: sphere
+    radius: 0.45
+    trajectory:
+      type: circle
+      center: [22.0, 7.0, -3.0]
+      radius: 4.5
+      angular_speed: 0.30
+      phase: 1.2
+      start_time: 0.0
+
+difficulty:
+  level: medium
+  expected_crossing_events: 3
+  obstacle_count: 3
+  max_obstacle_speed: 1.35
+  corridor_width_hint: 14.0
+  notes: Multiple crossings plus one patrol obstacle for moderate replanning pressure.

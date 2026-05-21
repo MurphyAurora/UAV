@@ -1,6 +1,14 @@
 # Coordinates are in the swarm-control NED frame.
 # Edit this file when you want to change the obstacle scene.
+#
+# Field notes:
+#   x/y/z: wall center position in NED.
+#   length: wall span along the y axis.
+#   thickness: wall size along the x axis.
+#   height: visual wall height.
+#   segment_spacing: spacing for collision points published to local avoidance.
 walls:
+  # Main wall in front of the swarm.
   - name: front_wall
     x: 3.0
     y: 1.0
@@ -10,6 +18,7 @@ walls:
     height: 4.8
     segment_spacing: 0.6
 
+  # Rear/right boundary wall.
   - name: rear_right_wall
     x: 18.0
     y: 110.0
@@ -19,6 +28,7 @@ walls:
     height: 4.8
     segment_spacing: 0.6
 
+  # Rear/left boundary wall.
   - name: rear_left_wall
     x: 18.0
     y: -108.0
@@ -28,6 +38,7 @@ walls:
     height: 4.8
     segment_spacing: 0.6
 
+# Target ball / mission target. z follows NED, so negative means upward.
 target:
   x: 30.0
   y: 26.0

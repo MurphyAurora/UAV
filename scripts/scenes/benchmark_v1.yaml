@@ -1,0 +1,9 @@
+suite:
+  name: benchmark_v1
+  version: 1
+  description: Three-level dynamic-obstacle smoke benchmark.
+
+scenarios:
+  - scenes/easy_crossing.yaml
+  - scenes/medium_multi_crossing.yaml
+  - scenes/hard_dense_crossing.yaml

@@ -1,0 +1,21 @@
+{
+  "difficulty": {
+    "expected_crossing_events": 1,
+    "level": "easy",
+    "max_obstacle_speed": 1.4,
+    "notes": "Small reproducible demo before wiring into ROS."
+  },
+  "dt": 0.5,
+  "duration": 30.0,
+  "dynamic_obstacle_count": 2,
+  "dynamic_obstacles": [
+    "crossing_ball_1",
+    "patrol_ball_1"
+  ],
+  "level": "easy",
+  "max_obstacle_speed": 1.4000497276882702,
+  "sample_count": 122,
+  "scene": "demo_dynamic_crossing",
+  "seed": 42,
+  "version": 1
+}
