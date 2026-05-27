@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""第 3 层：真实 ROS 运行中的集群状态汇总节点。
+
+输入：
+    每架无人机的 PX4 VehicleLocalPosition topic。
+输出：
+    /xtdrone2/swarm/state_exchange，包含 local x/y/z 和可选 world_x/world_y。
+
+当多架 PX4 模型的 local frame 原点不同时，world_x/world_y 用于统一距离计算坐标系。
+"""
 
 import json
 import argparse

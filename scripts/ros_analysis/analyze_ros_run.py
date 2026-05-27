@@ -1,4 +1,14 @@
 #!/usr/bin/env python3
+"""第 5 层：运行记录分析脚本。
+
+输入：
+    ros_run_recorder.py 生成的输出目录。
+输出：
+    终端指标和 analysis_summary.json。
+
+用于判断无人机是否进入动态障碍影响范围，以及运行中是否产生避障速度输出。
+"""
+
 import argparse
 import bisect
 import csv

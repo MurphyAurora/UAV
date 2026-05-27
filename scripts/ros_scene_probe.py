@@ -1,4 +1,15 @@
 #!/usr/bin/env python3
+"""第 3 层辅助工具：动态障碍 topic 探针。
+
+输入：
+    /xtdrone2/swarm/dynamic_obstacles。
+输出：
+    只包含命名动态障碍的过滤后终端日志。
+
+实时 topic 里可能包含大量静态墙 collision points。这个工具优先显示命名动态障碍，
+让调试输出更容易阅读。
+"""
+
 import argparse
 import json
 

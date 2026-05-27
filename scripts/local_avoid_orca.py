@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""第 4 层：用于平台集成验证的 ORCA-lite 避障节点。
+
+输入：
+    /xtdrone2/swarm/state_exchange 和 /xtdrone2/swarm/dynamic_obstacles。
+输出：
+    每架无人机的 /xtdrone2/x500_<id>/avoid_cmd_vel_ned。
+
+这是轻量测试算法，不是整个平台本身。它用于证明动态障碍场景能驱动实时避障算法，
+并且输出结果可以被记录、分析和可视化。
+"""
 
 import json
 import math

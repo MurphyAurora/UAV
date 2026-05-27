@@ -1,3 +1,5 @@
+# Layer 1: 场景配置层。
+# 最初的小 demo，用于快速检查参数化动态障碍生成流程。
 scene:
   name: demo_dynamic_crossing
   version: 1

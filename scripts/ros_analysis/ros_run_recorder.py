@@ -1,4 +1,15 @@
 #!/usr/bin/env python3
+"""第 5 层：ROS 运行数据记录器。
+
+输入：
+    /xtdrone2/swarm/state_exchange、/xtdrone2/swarm/dynamic_obstacles，以及
+    /xtdrone2/x500_<id>/avoid_cmd_vel_ned.
+输出：
+    drones.csv、obstacles_ros.csv、avoid_cmds.csv、recording_summary.json。
+
+在真实仿真运行时使用，用于保存后续分析和绘图所需的可复现实验记录。
+"""
+
 import argparse
 import csv
 import json

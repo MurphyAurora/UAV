@@ -1,0 +1,73 @@
+{
+  "scenarios": [
+    {
+      "declared_level": "easy",
+      "formation_survivability": {
+        "D_formation": 0.169719,
+        "S_formation": 29.490842,
+        "T_max": 30.0,
+        "failed_sample_count": 24,
+        "failed_sample_ratio": 0.087912,
+        "level": "easy",
+        "max_survival_time": 30.0,
+        "median_survival_time": 30.0,
+        "min_survival_time": 15.0,
+        "sample_count": 273,
+        "score": 0.169719,
+        "survived_sample_count": 249
+      },
+      "plot_config": "results/formation_survivability_v1/easy_crossing_seed101/scene_config_for_plot.yaml",
+      "sample_csv": "results/formation_survivability_v1/easy_crossing_seed101/survival_samples.csv",
+      "scene": "easy_crossing",
+      "scene_path": "scenes/easy_crossing.yaml",
+      "seed": 101,
+      "trajectory_csv": "results/formation_survivability_v1/easy_crossing_seed101/obstacle_trajectory.csv"
+    },
+    {
+      "declared_level": "medium",
+      "formation_survivability": {
+        "D_formation": 2.236722,
+        "S_formation": 31.053114,
+        "T_max": 40.0,
+        "failed_sample_count": 92,
+        "failed_sample_ratio": 0.336996,
+        "level": "medium",
+        "max_survival_time": 40.0,
+        "median_survival_time": 40.0,
+        "min_survival_time": 0.0,
+        "sample_count": 273,
+        "score": 2.236722,
+        "survived_sample_count": 181
+      },
+      "plot_config": "results/formation_survivability_v1/medium_multi_crossing_seed202/scene_config_for_plot.yaml",
+      "sample_csv": "results/formation_survivability_v1/medium_multi_crossing_seed202/survival_samples.csv",
+      "scene": "medium_multi_crossing",
+      "scene_path": "scenes/medium_multi_crossing.yaml",
+      "seed": 202,
+      "trajectory_csv": "results/formation_survivability_v1/medium_multi_crossing_seed202/obstacle_trajectory.csv"
+    },
+    {
+      "declared_level": "hard",
+      "formation_survivability": {
+        "D_formation": 4.102007,
+        "S_formation": 29.489967,
+        "T_max": 50.0,
+        "failed_sample_count": 162,
+        "failed_sample_ratio": 0.541806,
+        "level": "hard",
+        "max_survival_time": 50.0,
+        "median_survival_time": 24.5,
+        "min_survival_time": 0.0,
+        "sample_count": 299,
+        "score": 4.102007,
+        "survived_sample_count": 137
+      },
+      "plot_config": "results/formation_survivability_v1/hard_dense_crossing_seed303/scene_config_for_plot.yaml",
+      "sample_csv": "results/formation_survivability_v1/hard_dense_crossing_seed303/survival_samples.csv",
+      "scene": "hard_dense_crossing",
+      "scene_path": "scenes/hard_dense_crossing.yaml",
+      "seed": 303,
+      "trajectory_csv": "results/formation_survivability_v1/hard_dense_crossing_seed303/obstacle_trajectory.csv"
+    }
+  ]
+}

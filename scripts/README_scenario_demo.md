@@ -1,10 +1,50 @@
 # 可复现动态障碍场景 Demo
 
-这个 demo 是一个面向无人机集群算法测试的离线动态障碍场景生成组件。
+这个 demo 是一个面向无人机集群算法测试的可复现动态障碍场景平台组件。
 
-它目前还没有接入 ROS、Gazebo 或具体避障算法。当前阶段的目标是先把“场景配置、轨迹生成、指标摘要、批量 benchmark、可视化”做清楚，避免后续接入实时系统时把平台逻辑和算法逻辑混在一起。
+它支持用 YAML 参数化定义动态障碍场景，基于 seed 保证轨迹可复现；既可以离线生成轨迹和 benchmark 指标，也可以接入 ROS/Gazebo 实时发布动态障碍，并通过记录、分析、可视化工具评估无人机集群算法的反应。
+
+## 平台分层
+
+当前代码可以按 5 层理解：
+
+```text
+场景配置层
+  -> 离线生成与验证层
+  -> ROS/Gazebo 发布层
+  -> 算法接入层
+  -> 记录、分析与可视化层
+```
+
+每一层职责如下：
+
+- 场景配置层：`scenes/*.yaml`
+  - 定义动态障碍、静态墙、目标点、seed、难度等级。
+  - 是平台的主要输入。
+
+- 离线生成与验证层：`scenario_demo.py`、`plot_scenario.py`
+  - 不启动 ROS。
+  - 用于检查场景是否可复现、难度是否合理、轨迹是否正确。
+
+- ROS/Gazebo 发布层：`dynamic_obstacle_source.py`、`ros_scene_probe.py`、`swarm_state_exchange.py`
+  - 将场景 YAML 转成实时 ROS topic。
+  - 在 Gazebo 中显示动态障碍。
+  - 汇总无人机状态并补充 `world_x/world_y`。
+
+- 算法接入层：`local_avoid_orca.py`、`orca_reaction_test.py`、`start1.sh`
+  - 用 ORCA-lite 作为当前测试算法。
+  - 验证算法是否收到障碍、是否输出避障速度、是否进入真实控制链路。
+
+- 记录、分析与可视化层：`ros_analysis/ros_run_recorder.py`、`ros_analysis/analyze_ros_run.py`、`ros_analysis/plot_ros_run.py`
+  - 保存真实仿真运行数据。
+  - 计算最近距离、避障触发、非零输出等指标。
+  - 绘制总览图、障碍区放大图和动态障碍避让点图。
+
+推荐先把这些文件当作一个平台组件整体使用，不建议现在大规模移动目录；`start1.sh` 和已有控制脚本里已经写了不少固定路径。
 
 ## 文件说明
+
+### 核心平台文件
 
 - `scenario_demo.py`
   - 读取场景 YAML 文件。
@@ -25,20 +65,27 @@
   - 订阅 `/xtdrone2/x500_1/avoid_cmd_vel_ned`。
   - 用于验证 ORCA 收到障碍后是否输出非零避障速度。
 
-- `ros_run_recorder.py`
+- `ros_analysis/ros_run_recorder.py`
   - 订阅 `/xtdrone2/swarm/state_exchange` 和 `/xtdrone2/swarm/dynamic_obstacles`。
   - 输出无人机轨迹 `drones.csv` 和障碍物轨迹 `obstacles_ros.csv`。
   - 用于后续计算最小距离、近碰撞次数、路径长度等算法指标。
 
-- `analyze_ros_run.py`
-  - 读取 `ros_run_recorder.py` 保存的 CSV。
+- `ros_analysis/analyze_ros_run.py`
+  - 读取 `ros_analysis/ros_run_recorder.py` 保存的 CSV。
   - 自动统计动态障碍轨迹范围、无人机到障碍物的最近距离、ORCA 避障速度输出。
   - 用于判断“是否真的进入避障范围”和“ORCA 是否真的输出过非零避障速度”。
 
-- `plot_ros_run.py`
-  - 读取 `ros_run_recorder.py` 保存的 CSV。
+- `ros_analysis/plot_ros_run.py`
+  - 读取 `ros_analysis/ros_run_recorder.py` 保存的 CSV。
   - 绘制真实无人机轨迹、动态障碍轨迹、最近距离点和 ORCA 非零输出段。
   - 用于把 Gazebo 中的肉眼观察和日志数据对齐。
+
+- `difficulty_analysis/formation_survivability_experiment.py`
+  - 实验性旁路脚本，不改 `scenario_demo.py` 主评分逻辑。
+  - 从“有限任务走廊内的编队整体生存性”角度评估动态障碍难度。
+  - 不使用任何避障算法轨迹，只用场景里的动态障碍轨迹和虚拟编队模型。
+
+### 场景文件
 
 - `scenes/demo_dynamic.yaml`
   - 最初的小 demo 场景。
@@ -54,6 +101,26 @@
 
 - `scenes/benchmark_v1.yaml`
   - 批量 benchmark 配置，包含 easy、medium、hard 三个场景。
+
+### 系统和兼容文件
+
+- `start1.sh`
+  - 当前真实仿真的总启动脚本。
+  - 负责启动 PX4、通信节点、状态汇总、动态障碍发布、ORCA 等。
+
+- `local_avoid_orca.py`
+  - 当前用于验证平台链路的 ORCA-lite 测试算法。
+  - 后续如果接入其他算法，可以把它作为参考输入/输出格式。
+
+- `obstacles.yaml`
+  - 旧静态墙/目标配置，仍被 `start1.sh` 和兼容模式使用。
+
+- `obstacle_config.py`
+  - 读取旧 `obstacles.yaml` 的辅助模块。
+
+- `multi_waypoint2.py`
+  - 已有无人机集群任务/航点控制脚本。
+  - 属于原系统控制逻辑，不是动态障碍场景平台的核心生成器。
 
 ## 运行单个场景
 
@@ -181,12 +248,11 @@ python3 plot_scenario.py \
 - benchmark suite 批量运行
 - 2D 轨迹可视化
 - `dynamic_obstacle_source.py --mode scene` 从场景 YAML 发布 ROS 动态障碍 topic
-
-尚未实现：
-
-- 将新动态障碍轨迹接入 Gazebo 可视化
-- 真实无人机集群算法评估
-- 无人机轨迹记录和碰撞指标统计
+- Gazebo 中显示第一个命名动态障碍
+- ORCA-lite 接收动态障碍并输出避障速度
+- ROS 运行数据记录
+- 最近距离、避障输出和动态障碍轨迹分析
+- 真实轨迹可视化图
 
 ## ROS 发布接入
 
@@ -471,14 +537,14 @@ scene YAML
 
 ## ROS 运行轨迹记录
 
-真实仿真运行时，可以单独启动 `ros_run_recorder.py` 保存无人机、动态障碍和 ORCA 避障输出。
+真实仿真运行时，可以单独启动 `ros_analysis/ros_run_recorder.py` 保存无人机、动态障碍和 ORCA 避障输出。
 
 建议在启动 `start1.sh` 后，另开一个终端运行：
 
 ```bash
 cd /home/lililab/ws_xtd2/scripts
 
-python3 ros_run_recorder.py \
+python3 ros_analysis/ros_run_recorder.py \
   --output-dir ~/ws_xtd2/logs/ros_run_easy_flight_reaction \
   --duration-sec 120
 ```
@@ -524,10 +590,10 @@ head ~/ws_xtd2/logs/ros_run_easy_flight_reaction/avoid_cmds.csv
 
 ## ROS 运行记录分析
 
-记录结束后，可以用 `analyze_ros_run.py` 自动分析这一轮运行：
+记录结束后，可以用 `ros_analysis/analyze_ros_run.py` 自动分析这一轮运行：
 
 ```bash
-python3 analyze_ros_run.py \
+python3 ros_analysis/analyze_ros_run.py \
   --run-dir ~/ws_xtd2/logs/ros_run_easy_flight_reaction \
   --obstacle-center-x 12.0 \
   --obstacle-center-y 10.4 \
@@ -567,10 +633,10 @@ verdict=PASS: obstacle reached route and ORCA produced avoid output
 
 ## ROS 运行轨迹可视化
 
-如果日志显示 ORCA 有输出，但 Gazebo 中肉眼看起来“不明显”或“不像在躲”，可以用 `plot_ros_run.py` 画真实轨迹图：
+如果日志显示 ORCA 有输出，但 Gazebo 中肉眼看起来“不明显”或“不像在躲”，可以用 `ros_analysis/plot_ros_run.py` 画真实轨迹图：
 
 ```bash
-python3 plot_ros_run.py \
+python3 ros_analysis/plot_ros_run.py \
   --run-dir ~/ws_xtd2/logs/ros_run_easy_flight_reaction_stronger \
   --influence-radius 3.5
 ```
@@ -601,7 +667,7 @@ python3 plot_ros_run.py \
 如果只想生成一张图，可以指定：
 
 ```bash
-python3 plot_ros_run.py \
+python3 ros_analysis/plot_ros_run.py \
   --run-dir ~/ws_xtd2/logs/ros_run_easy_flight_reaction_stronger \
   --influence-radius 3.5 \
   --plot-set single \
@@ -616,6 +682,163 @@ ORCA 非零输出发生在轨迹哪里？
 避障速度是否只是在任务速度上做小幅修正？
 Gazebo 画面中的“没躲”是不是只是视觉上不明显？
 ```
+
+## 实验：Formation Survivability 分级
+
+`difficulty_analysis/formation_survivability_experiment.py` 是一个尚未并入主逻辑的实验脚本。它不替换 `scenario_demo.py` 中已有的 `difficulty_score`，而是额外从编队生存性角度评估场景。
+
+基本思想：
+
+```text
+Gazebo 世界可以是开放的
+但难度计算只在一个有限任务走廊内进行
+任务走廊由起点、目标点、飞行高度、编队尺度和允许避障范围定义
+在走廊内采样很多虚拟编队中心
+每个中心放置一个固定三机三角编队
+读取动态障碍物随时间变化的轨迹
+计算每个虚拟编队中心第一次被安全侵入的时间
+所有采样中心的平均存活时间就是 S_formation
+S_formation 越小，D_formation 越大，场景越难
+```
+
+当前默认三机编队模型：
+
+```text
+delta_1 = [0, 0, 0]
+delta_2 = [-d, -d, 0]
+delta_3 = [-d,  d, 0]
+```
+
+其中 `d` 默认读取场景里的 `swarm.y_spacing`，也可以用 `--formation-d` 指定。
+
+安全侵入条件：
+
+```text
+|| p_center + delta_i - obstacle_j(t) || <= r_uav + r_obs_j + safe_margin
+```
+
+难度分数：
+
+```text
+S_formation = mean(first_intrusion_time_of_each_sample)
+D_formation = 10 * (1 - S_formation / T_max)
+```
+
+`D_formation` 范围是 0 到 10，数值越大表示越难。等级阈值和分数定义分开处理，当前实验默认：
+
+```text
+easy:   D_formation < 1.0
+medium: 1.0 <= D_formation < 3.5
+hard:   D_formation >= 3.5
+```
+
+运行 benchmark：
+
+```bash
+python3 difficulty_analysis/formation_survivability_experiment.py \
+  --suite scenes/benchmark_v1.yaml \
+  --output-dir /tmp/formation_survivability_suite
+```
+
+当前实验结果示例：
+
+```text
+easy_crossing: declared=easy survivability=easy D=0.17/10 S=29.49s failed=0.09
+medium_multi_crossing: declared=medium survivability=medium D=2.24/10 S=31.05s failed=0.34
+hard_dense_crossing: declared=hard survivability=hard D=4.10/10 S=29.49s failed=0.54
+```
+
+输出文件：
+
+```text
+/tmp/formation_survivability_suite/
+  suite_survivability.csv
+  suite_survivability.json
+  easy_crossing_seed101/survival_samples.csv
+  medium_multi_crossing_seed202/survival_samples.csv
+  hard_dense_crossing_seed303/survival_samples.csv
+```
+
+`survival_samples.csv` 会保存每个虚拟编队中心的位置、存活时间、是否失效、首次侵入障碍物和对应虚拟无人机编号。
+
+这个指标目前只作为离线实验依据。确认稳定后，再考虑并入 `scenario_demo.py` 的 `summary.json` 和 `suite_summary.csv`。
+
+### 独立文件版难度分析
+
+如果要按论文实验的独立输入格式运行，可以使用：
+
+```text
+difficulty_analysis/
+  core.py
+  formation_survivability.py
+  run_difficulty_analysis.py
+  plot_difficulty_analysis.py
+  scene_config.example.yaml
+  obstacle_trajectory.example.csv
+```
+
+其中 `core.py` 是共同的 Formation Survivability 核心算法；`formation_survivability.py` 读取独立 `scene_config.yaml + obstacle_trajectory.csv` 输入，`formation_survivability_experiment.py` 读取当前平台的 `scenes/*.yaml` 并转换成同一套核心算法输入。
+
+单场景分析：
+
+```bash
+python3 difficulty_analysis/formation_survivability.py \
+  --config scenes/easy_01/scene_config.yaml \
+  --trajectory scenes/easy_01/obstacle_trajectory.csv \
+  --output results/easy_01_result.json
+```
+
+批量分析：
+
+```bash
+python3 difficulty_analysis/run_difficulty_analysis.py \
+  --scene-root scenes \
+  --output results/difficulty_summary.csv \
+  --plot-dir results/plots
+```
+
+可视化单场景采样点风险图和障碍俯视图：
+
+```bash
+python3 difficulty_analysis/plot_difficulty_analysis.py \
+  --summary-csv results/difficulty_summary.csv \
+  --config scenes/easy_01/scene_config.yaml \
+  --trajectory scenes/easy_01/obstacle_trajectory.csv \
+  --samples results/scene_results/easy_01/formation_survivability_result_samples.csv \
+  --output-dir results/plots \
+  --z 2.0
+```
+
+如果 `summary.csv` 中包含 `sample_csv`、`trajectory_csv` 和 `plot_config` 三列，也可以为每个场景自动生成图：
+
+```bash
+python3 difficulty_analysis/plot_difficulty_analysis.py \
+  --summary-csv results/formation_survivability_v1/suite_survivability.csv \
+  --output-dir results/formation_survivability_v1/plots \
+  --z -3.0 \
+  --plot-scenes-from-summary
+```
+
+输出包括：
+
+```text
+S_formation_bar.png
+D_formation_bar.png
+<scene_name>/survivability_map_z*.png
+<scene_name>/trajectory_region_samples.png
+```
+
+如果要从 ROS/Gazebo 动态障碍发布器保存 `obstacle_trajectory.csv`，可以在启动 `dynamic_obstacle_source.py` 时额外打开记录开关：
+
+```bash
+python3 dynamic_obstacle_source.py \
+  --mode scene \
+  --scene-config scenes/easy_crossing.yaml \
+  --trajectory-record-path results/easy_01/obstacle_trajectory.csv \
+  --trajectory-record-dt 0.1
+```
+
+这个记录功能默认关闭，不影响原来的动态障碍发布和 Gazebo 可视化。
 
 同时可以查看 ORCA 诊断日志：
 

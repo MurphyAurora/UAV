@@ -1,4 +1,14 @@
 #!/usr/bin/env python3
+"""第 2 层：离线场景生成与 benchmark 评估。
+
+输入：
+    scenes/*.yaml 单场景文件，或 benchmark suite YAML。
+输出：
+    obstacles.csv、summary.json、resolved_scene.json，以及 suite 汇总文件。
+
+这个模块刻意不依赖 ROS/Gazebo，是动态障碍场景的离线可复现参考。
+"""
+
 import argparse
 import csv
 import json

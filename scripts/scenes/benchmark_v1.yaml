@@ -1,3 +1,5 @@
+# Layer 1: 场景配置层。
+# benchmark suite：批量引用 easy/medium/hard 场景，生成统一评估结果。
 suite:
   name: benchmark_v1
   version: 1

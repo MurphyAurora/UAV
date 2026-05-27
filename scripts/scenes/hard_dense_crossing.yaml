@@ -1,3 +1,5 @@
+# Layer 1: 场景配置层。
+# hard benchmark 场景：密集穿越和目标区域巡逻，用于高难度压力测试。
 scene:
   name: hard_dense_crossing
   version: 1

@@ -1,4 +1,14 @@
 #!/usr/bin/env python3
+"""第 2 层：离线场景绘图。
+
+输入：
+    场景 YAML，可选离线生成的 obstacles.csv。
+输出：
+    包含静态墙、参考航线、目标点和动态障碍轨迹的 2D x/y 图。
+
+用于在接入 ROS/Gazebo 前检查场景几何关系是否合理。
+"""
+
 import argparse
 import csv
 import os

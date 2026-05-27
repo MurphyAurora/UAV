@@ -1,0 +1,46 @@
+scene_name: medium_multi_crossing
+manual_level: Medium
+duration: 40.0
+dt: 0.5
+evaluation_region:
+  x_min: -3.327350647362943
+  x_max: 35.32735064736294
+  y_min: -4.436467529817257
+  y_max: 28.436467529817257
+  z_min: -3.0
+  z_max: -3.0
+sampling:
+  dx: 2.0
+  dy: 1.0
+  dz: 1.0
+  frame: route_aligned_corridor
+route:
+  start:
+  - 0.0
+  - 0.0
+  - -3.0
+  target:
+  - 32.0
+  - 24.0
+  - -3.0
+formation:
+  shape: triangle
+  frame: route_aligned
+  spacing: 1.8
+  uav_radius: 0.35
+  safe_margin: 0.6
+  local_offsets:
+  - - 0.0
+    - 0.0
+    - 0.0
+  - - -1.8
+    - -1.8
+    - 0.0
+  - - -1.8
+    - 1.8
+    - 0.0
+difficulty:
+  normalize_min: 0.0
+  normalize_max: 40.0
+  easy_threshold: 1.0
+  medium_threshold: 3.5

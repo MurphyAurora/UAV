@@ -1,4 +1,15 @@
 #!/usr/bin/env python3
+"""第 4 层辅助工具：ORCA 反应冒烟测试。
+
+输入：
+    真实动态障碍 topic，或脚本自己发布的测试障碍。
+输出：
+    PASS/FAIL 结果和 reaction_summary.json。
+
+这个脚本不启动真实无人机。它会在动态障碍附近发布假的集群状态，
+检查 local_avoid_orca.py 是否输出非零避障速度。
+"""
+
 import argparse
 import json
 import math

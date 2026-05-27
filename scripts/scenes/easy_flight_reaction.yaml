@@ -1,3 +1,5 @@
+# Layer 1: 场景配置层。
+# 真实飞行反应观察场景：动态球在航线附近持续巡逻，便于观察避障。
 scene:
   name: easy_flight_reaction
   version: 1

@@ -1,4 +1,15 @@
 #!/usr/bin/env python3
+"""第 5 层：运行记录可视化脚本。
+
+输入：
+    ros_run_recorder.py 生成的输出目录。
+输出：
+    plots/ 下的 overview.png、zoom_obstacle.png 和 obstacle_avoid.png。
+
+图中对齐真实无人机轨迹、动态障碍轨迹、最近距离点和避障输出时刻，
+用于把 Gazebo 中的肉眼观察和记录数据相互校验。
+"""
+
 import argparse
 import bisect
 import csv

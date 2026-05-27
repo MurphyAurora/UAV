@@ -1,9 +1,20 @@
- #!/usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""第 3 层：ROS/Gazebo 动态障碍发布节点。
+
+输入：
+    旧版 obstacles.yaml，或 scenes/*.yaml 场景文件。
+输出：
+    /xtdrone2/swarm/dynamic_obstacles 和 /xtdrone2/swarm/target_markers。
+
+在 scene 模式下，它把可复现 YAML 场景实时转换为避障算法消费的 ROS topic。
+Gazebo 可视化只做最小展示：显示第一个命名动态障碍；ROS topic 才是权威数据。
+"""
 
 import json
 import math
 import argparse
+import csv
 import time
 import os
 import tempfile
@@ -22,6 +33,7 @@ except Exception:  # pragma: no cover - PyYAML is expected in the ROS env.
 
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+GAZEBO_ASSET_DIR = os.path.join(SCRIPT_DIR, 'gazebo_assets')
 
 
 def _finite_float(value, default=0.0):
@@ -44,6 +56,10 @@ def _resolve_path(path):
     if os.path.exists(expanded):
         return expanded
     return os.path.join(SCRIPT_DIR, expanded)
+
+
+def _asset_path(filename):
+    return os.path.join(GAZEBO_ASSET_DIR, filename)
 
 
 class DynamicObstacleSource(Node):
@@ -109,6 +125,8 @@ class DynamicObstacleSource(Node):
         self.declare_parameter('z', 0.6)
         self.declare_parameter('visual_filter_alpha', 0.35)
         self.declare_parameter('visual_max_step', 0.15)
+        self.declare_parameter('trajectory_record_path', '')
+        self.declare_parameter('trajectory_record_dt', 0.0)
 
         self.t0 = time.time()
         self.timer = self.create_timer(max(0.05, 1.0 / rate_hz), self._publish)
@@ -133,6 +151,7 @@ class DynamicObstacleSource(Node):
         self._scene_cache = {}
         self._scene_warned_no_config = False
         self._scene_warned_unsupported = set()
+        self._last_trajectory_record_t = None
         self.get_logger().info(
             'dynamic_obstacle_source started, publishing /xtdrone2/swarm/dynamic_obstacles, '
             f'visualize_gz={self.visualize_gz}, world={self.world_name}, mode={self.mode}'
@@ -208,7 +227,7 @@ class DynamicObstacleSource(Node):
             sdf_path = self._prepare_scene_ball_sdf()
             entity_name = self.scene_entity_name
         else:
-            sdf_path = os.path.join(os.path.dirname(__file__), 'dynamic_obstacle_ball.sdf')
+            sdf_path = _asset_path('dynamic_obstacle_ball.sdf')
             entity_name = self._visual_obstacle_entity_name()
         if not os.path.exists(sdf_path):
             self.get_logger().warn(f'visual obstacle sdf not found: {sdf_path}')
@@ -397,7 +416,7 @@ class DynamicObstacleSource(Node):
             return
 
         # 绿色target marker已移除：改为使用红色dynamic_obstacle_ball作为静态目标点。
-        sdf_path = os.path.join(os.path.dirname(__file__), 'dynamic_obstacle_ball.sdf')
+        sdf_path = _asset_path('dynamic_obstacle_ball.sdf')
         if not os.path.exists(sdf_path):
             self.get_logger().warn(f'target ball sdf not found: {sdf_path}')
             return
@@ -645,6 +664,64 @@ class DynamicObstacleSource(Node):
 
         return {'stamp': time.time(), 'scene_time': t, 'obstacles': obstacles}
 
+    def _dynamic_items_for_record(self, payload):
+        items = []
+        for idx, obs in enumerate(payload.get('obstacles', []), start=1):
+            name = str(obs.get('name', '')).strip()
+            if self.mode == 'scene' and not name:
+                continue
+            if self.mode == 'static_wall':
+                continue
+            obstacle_id = name or f'obs_{obs.get("obs_id", idx)}'
+            items.append(
+                {
+                    'time': float(payload.get('scene_time', time.time() - self.t0)),
+                    'obstacle_id': obstacle_id,
+                    'x': float(obs.get('x', 0.0)),
+                    'y': float(obs.get('y', 0.0)),
+                    'z': float(obs.get('z', 0.0)),
+                    'radius': float(obs.get('radius', 0.5)),
+                }
+            )
+        return items
+
+    def _record_obstacle_trajectory(self, payload):
+        record_path = str(self.get_parameter('trajectory_record_path').value or '').strip()
+        record_dt = float(self.get_parameter('trajectory_record_dt').value)
+        if not record_path or record_dt <= 0.0:
+            return
+
+        scene_time = float(payload.get('scene_time', time.time() - self.t0))
+        if self._last_trajectory_record_t is not None:
+            if scene_time - self._last_trajectory_record_t < record_dt - 1e-9:
+                return
+
+        items = self._dynamic_items_for_record(payload)
+        if not items:
+            return
+
+        path = _resolve_path(record_path)
+        parent = os.path.dirname(path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        need_header = not os.path.exists(path) or os.path.getsize(path) == 0
+        with open(path, 'a', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=['time', 'obstacle_id', 'x', 'y', 'z', 'radius'])
+            if need_header:
+                writer.writeheader()
+            for item in items:
+                writer.writerow(
+                    {
+                        'time': f"{item['time']:.4f}",
+                        'obstacle_id': item['obstacle_id'],
+                        'x': f"{item['x']:.4f}",
+                        'y': f"{item['y']:.4f}",
+                        'z': f"{item['z']:.4f}",
+                        'radius': f"{item['radius']:.4f}",
+                    }
+                )
+        self._last_trajectory_record_t = scene_time
+
     def _blend_center(self, t: float):
         start_x = self._p('start_center_x')
         start_y = self._p('start_center_y')
@@ -818,6 +895,7 @@ class DynamicObstacleSource(Node):
         msg = String()
         msg.data = json.dumps(payload, ensure_ascii=False)
         self.pub.publish(msg)
+        self._record_obstacle_trajectory(payload)
 
         target_payload = self._build_target_markers_payload()
         if target_payload is not None:
@@ -933,6 +1011,8 @@ def main():
     parser.add_argument('--target-ball-target-z', '--target-marker-target-z', dest='target_ball_target_z', type=float, default=-3.0)
     parser.add_argument('--target-ball-base-y', '--target-marker-base-y', dest='target_ball_base_y', type=float, default=0.0)
     parser.add_argument('--target-ball-y-spacing', '--target-marker-y-spacing', dest='target_ball_y_spacing', type=float, default=1.8)
+    parser.add_argument('--trajectory-record-path', type=str, default='')
+    parser.add_argument('--trajectory-record-dt', type=float, default=0.0)
     args, _ = parser.parse_known_args()
 
     rclpy.init()
@@ -970,6 +1050,8 @@ def main():
         Parameter('target_ball_target_z', Parameter.Type.DOUBLE, float(args.target_ball_target_z)),
         Parameter('target_ball_base_y', Parameter.Type.DOUBLE, float(args.target_ball_base_y)),
         Parameter('target_ball_y_spacing', Parameter.Type.DOUBLE, float(args.target_ball_y_spacing)),
+        Parameter('trajectory_record_path', Parameter.Type.STRING, str(args.trajectory_record_path)),
+        Parameter('trajectory_record_dt', Parameter.Type.DOUBLE, float(args.trajectory_record_dt)),
     ])
     if node.visualize_gz:
         node._setup_gz_visual()

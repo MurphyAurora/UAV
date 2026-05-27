@@ -1,3 +1,5 @@
+# Layer 1: 场景配置层。
+# medium benchmark 场景：多个穿越障碍和巡逻障碍，用于中等难度算法测试。
 scene:
   name: medium_multi_crossing
   version: 1
