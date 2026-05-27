@@ -54,6 +54,7 @@ ORCA_GAIN=${ORCA_GAIN:-0.45}
 ORCA_OBS_GAIN=${ORCA_OBS_GAIN:-0.85}
 ORCA_OBS_INFLUENCE_RADIUS=${ORCA_OBS_INFLUENCE_RADIUS:-2.2}
 ORCA_ENABLE_AFTER_Z=${ORCA_ENABLE_AFTER_Z:--0.6}
+ORCA_USE_WORLD_STATE=${ORCA_USE_WORLD_STATE:-0}
 COMM_AVOID_ENABLE_Z=${COMM_AVOID_ENABLE_Z:--1.8}
 COMM_AVOID_MIN_SPEED=${COMM_AVOID_MIN_SPEED:-0.03}
 COMM_AVOID_Z_TRACK_TOL=${COMM_AVOID_Z_TRACK_TOL:-0.35}
@@ -63,6 +64,7 @@ DYNAMIC_OBS_WORLD=${DYNAMIC_OBS_WORLD:-${GZ_WORLD}}
 OBSTACLE_CONFIG=${OBSTACLE_CONFIG:-~/ws_xtd2/scripts/obstacles.yaml}
 # 墙体模式参数保留用于后续实验；当前默认无墙验证(DYNAMIC_OBS_ENABLE=0)不会启动该链路
 DYNAMIC_OBS_MODE=${DYNAMIC_OBS_MODE:-static_wall}
+DYNAMIC_OBS_SCENE_CONFIG=${DYNAMIC_OBS_SCENE_CONFIG:-~/ws_xtd2/scripts/scenes/easy_crossing.yaml}
 DYNAMIC_OBS_START_CENTER_X=${DYNAMIC_OBS_START_CENTER_X:-35.0}
 DYNAMIC_OBS_START_CENTER_Y=${DYNAMIC_OBS_START_CENTER_Y:-6.0}
 DYNAMIC_OBS_ACTIVE_CENTER_X=${DYNAMIC_OBS_ACTIVE_CENTER_X:-5.5}
@@ -148,6 +150,8 @@ echo "[MODE] leader-follower: FORMATION_KP=${FORMATION_KP}, LEADER_TRACK_KP=${LE
 echo "[MODE] FORMATION_METRICS_CSV=${FORMATION_METRICS_CSV}"
 echo "[MODE] PATH_PLANNER_MODE=${PATH_PLANNER_MODE}, ASTAR_GRID_RESOLUTION=${ASTAR_GRID_RESOLUTION}, ASTAR_WALL_THICKNESS=${ASTAR_WALL_THICKNESS}, ASTAR_OBS_INFLATION=${ASTAR_OBS_INFLATION:-auto}, ASTAR_MIN_WAYPOINT_DIST=${ASTAR_MIN_WAYPOINT_DIST}, ASTAR_SMOOTH_ENABLE=${ASTAR_SMOOTH_ENABLE}"
 echo "[MODE] OBSTACLE_CONFIG=${OBSTACLE_CONFIG}"
+echo "[MODE] DYNAMIC_OBS_MODE=${DYNAMIC_OBS_MODE}"
+echo "[MODE] DYNAMIC_OBS_SCENE_CONFIG=${DYNAMIC_OBS_SCENE_CONFIG}"
 echo "[MODE] SECOND_WALL_ENABLE=${SECOND_WALL_ENABLE}, SECOND_WALL_DX=${SECOND_WALL_DX}, REAR_WALL_GAP=${REAR_WALL_GAP}, REAR_WALL_LENGTH=${REAR_WALL_LENGTH}, SECOND_WALL_DY=${SECOND_WALL_DY}, THIRD_WALL_ENABLE=${THIRD_WALL_ENABLE}"
 echo "[MODE] MISSION_START_X=${MISSION_START_X} (wall_x=${DYNAMIC_OBS_WALL_X}, clearance=${START_WALL_CLEARANCE})"
 echo "[MODE] USE_SPAWNED_FORMATION=${USE_SPAWNED_FORMATION} (1=PX4 local commands start at each spawned drone origin)"
@@ -279,7 +283,7 @@ launch_job "StateExchange" "
 cd ~/ws_xtd2;
 source /opt/ros/jazzy/setup.bash;
 source install/setup.bash;
-python3 ~/ws_xtd2/scripts/swarm_state_exchange.py --num-drones ${NUM_DRONES} --rate 15 2>&1 | tee ${LOG_DIR}/state_exchange.log;
+python3 ~/ws_xtd2/scripts/swarm_state_exchange.py --num-drones ${NUM_DRONES} --rate 15 --spawned-formation ${USE_SPAWNED_FORMATION} --mission-start-x ${MISSION_START_X} --base-y ${DYNAMIC_OBS_WALL_Y} --y-spacing ${DYNAMIC_OBS_TARGET_Y_SPACING} --leader-id ${LEADER_ID} 2>&1 | tee ${LOG_DIR}/state_exchange.log;
 exec bash
 "
 if [ "${SWARM_MODE}" = "hybrid" ]; then
@@ -288,7 +292,7 @@ if [ "${SWARM_MODE}" = "hybrid" ]; then
 cd ~/ws_xtd2;
 source /opt/ros/jazzy/setup.bash;
 source install/setup.bash;
-python3 ~/ws_xtd2/scripts/local_avoid_orca.py --num-drones ${NUM_DRONES} --safe-radius ${ORCA_SAFE_RADIUS} --max-speed ${ORCA_MAX_SPEED} --gain ${ORCA_GAIN} --obs-gain ${ORCA_OBS_GAIN} --obs-influence-radius ${ORCA_OBS_INFLUENCE_RADIUS} --enable-after-z ${ORCA_ENABLE_AFTER_Z} 2>&1 | tee ${LOG_DIR}/local_orca.log;
+python3 ~/ws_xtd2/scripts/local_avoid_orca.py --num-drones ${NUM_DRONES} --safe-radius ${ORCA_SAFE_RADIUS} --max-speed ${ORCA_MAX_SPEED} --gain ${ORCA_GAIN} --obs-gain ${ORCA_OBS_GAIN} --obs-influence-radius ${ORCA_OBS_INFLUENCE_RADIUS} --enable-after-z ${ORCA_ENABLE_AFTER_Z} --use-world-state ${ORCA_USE_WORLD_STATE} 2>&1 | tee ${LOG_DIR}/local_orca.log;
 exec bash
 "
   # 无墙目标点验证：默认不启动动态障碍节点；如需恢复墙体验证再打开 DYNAMIC_OBS_ENABLE=1
@@ -297,8 +301,8 @@ exec bash
 cd ~/ws_xtd2;
 source /opt/ros/jazzy/setup.bash;
 source install/setup.bash;
-  # 静态墙+目标点可视化：当前验证使用墙体和目标标记
-  python3 ~/ws_xtd2/scripts/dynamic_obstacle_source.py --rate 10 --world ${DYNAMIC_OBS_WORLD} --visualize-gz ${DYNAMIC_OBS_VISUALIZE_GZ} --mode static_wall --obstacle-config ${OBSTACLE_CONFIG} --wall-x ${DYNAMIC_OBS_WALL_X} --wall-y ${DYNAMIC_OBS_WALL_Y} --wall-z ${DYNAMIC_OBS_WALL_Z} --wall-length ${DYNAMIC_OBS_WALL_LENGTH} --wall-thickness ${DYNAMIC_OBS_WALL_THICKNESS} --wall-height ${DYNAMIC_OBS_WALL_HEIGHT} --wall-segment-spacing ${DYNAMIC_OBS_WALL_SEGMENT_SPACING} --second-wall-enable ${SECOND_WALL_ENABLE} --second-wall-dx ${SECOND_WALL_DX} --second-wall-dy ${SECOND_WALL_DY} --rear-wall-length ${REAR_WALL_LENGTH} --third-wall-enable ${THIRD_WALL_ENABLE} --target-ball-enable 1 --target-ball-num-drones ${NUM_DRONES} --target-ball-leader-id ${LEADER_ID} --target-ball-target-x ${DYNAMIC_OBS_TARGET_X} --target-ball-base-y ${DYNAMIC_OBS_TARGET_Y_BASE} --target-ball-target-z ${MISSION_Z} --target-ball-y-spacing ${DYNAMIC_OBS_TARGET_Y_SPACING} 2>&1 | tee ${LOG_DIR}/dynamic_obstacles.log;
+  # DYNAMIC_OBS_MODE=static_wall uses obstacles.yaml; DYNAMIC_OBS_MODE=scene uses scenes/*.yaml.
+  python3 ~/ws_xtd2/scripts/dynamic_obstacle_source.py --rate 10 --world ${DYNAMIC_OBS_WORLD} --visualize-gz ${DYNAMIC_OBS_VISUALIZE_GZ} --mode ${DYNAMIC_OBS_MODE} --scene-config ${DYNAMIC_OBS_SCENE_CONFIG} --obstacle-config ${OBSTACLE_CONFIG} --wall-x ${DYNAMIC_OBS_WALL_X} --wall-y ${DYNAMIC_OBS_WALL_Y} --wall-z ${DYNAMIC_OBS_WALL_Z} --wall-length ${DYNAMIC_OBS_WALL_LENGTH} --wall-thickness ${DYNAMIC_OBS_WALL_THICKNESS} --wall-height ${DYNAMIC_OBS_WALL_HEIGHT} --wall-segment-spacing ${DYNAMIC_OBS_WALL_SEGMENT_SPACING} --second-wall-enable ${SECOND_WALL_ENABLE} --second-wall-dx ${SECOND_WALL_DX} --second-wall-dy ${SECOND_WALL_DY} --rear-wall-length ${REAR_WALL_LENGTH} --third-wall-enable ${THIRD_WALL_ENABLE} --target-ball-enable 1 --target-ball-num-drones ${NUM_DRONES} --target-ball-leader-id ${LEADER_ID} --target-ball-target-x ${DYNAMIC_OBS_TARGET_X} --target-ball-base-y ${DYNAMIC_OBS_TARGET_Y_BASE} --target-ball-target-z ${MISSION_Z} --target-ball-y-spacing ${DYNAMIC_OBS_TARGET_Y_SPACING} 2>&1 | tee ${LOG_DIR}/dynamic_obstacles.log;
 exec bash
 "
   fi

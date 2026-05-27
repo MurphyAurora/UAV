@@ -15,6 +15,36 @@ from rclpy.parameter import Parameter
 from std_msgs.msg import String
 from obstacle_config import WallObstacle, load_obstacle_config, normalized_target, normalized_walls, obstacles_from_config
 
+try:
+    import yaml
+except Exception:  # pragma: no cover - PyYAML is expected in the ROS env.
+    yaml = None
+
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def _finite_float(value, default=0.0):
+    try:
+        return float(value)
+    except Exception:
+        return float(default)
+
+
+def _vector3(value, default=(0.0, 0.0, 0.0)):
+    if not isinstance(value, (list, tuple)) or len(value) != 3:
+        return tuple(float(v) for v in default)
+    return tuple(_finite_float(v) for v in value)
+
+
+def _resolve_path(path):
+    expanded = os.path.expanduser(str(path or ''))
+    if os.path.isabs(expanded):
+        return expanded
+    if os.path.exists(expanded):
+        return expanded
+    return os.path.join(SCRIPT_DIR, expanded)
+
 
 class DynamicObstacleSource(Node):
     def __init__(
@@ -37,6 +67,7 @@ class DynamicObstacleSource(Node):
         self.visualize_gz = bool(visualize_gz)
         self.mode = str(mode)
         self.entity_name = 'dynamic_obstacle_ball'
+        self.scene_entity_name = 'scene_dynamic_obstacle_1'
         self.wall_entity_name = 'static_obstacle_wall'
         self.target_ball_entity_name = 'target_ball'
 
@@ -58,6 +89,7 @@ class DynamicObstacleSource(Node):
         self.declare_parameter('wall_height', 1.8)
         self.declare_parameter('wall_segment_spacing', 0.6)
         self.declare_parameter('obstacle_config', '')
+        self.declare_parameter('scene_config', '')
         self.declare_parameter('second_wall_enable', 1)
         self.declare_parameter('second_wall_dx', 15.0)
         self.declare_parameter('second_wall_dy', 109.0)
@@ -96,6 +128,11 @@ class DynamicObstacleSource(Node):
         self._switch_logged = False
         self._wall_spawned = False
         self._target_ball_spawned = False
+        self._scene_cache_path = ''
+        self._scene_cache_mtime = None
+        self._scene_cache = {}
+        self._scene_warned_no_config = False
+        self._scene_warned_unsupported = set()
         self.get_logger().info(
             'dynamic_obstacle_source started, publishing /xtdrone2/swarm/dynamic_obstacles, '
             f'visualize_gz={self.visualize_gz}, world={self.world_name}, mode={self.mode}'
@@ -167,9 +204,12 @@ class DynamicObstacleSource(Node):
         if self.mode == 'static_wall':
             sdf_path = self._prepare_wall_sdf()
             entity_name = self.wall_entity_name
+        elif self.mode == 'scene':
+            sdf_path = self._prepare_scene_ball_sdf()
+            entity_name = self.scene_entity_name
         else:
             sdf_path = os.path.join(os.path.dirname(__file__), 'dynamic_obstacle_ball.sdf')
-            entity_name = self.entity_name
+            entity_name = self._visual_obstacle_entity_name()
         if not os.path.exists(sdf_path):
             self.get_logger().warn(f'visual obstacle sdf not found: {sdf_path}')
             return
@@ -202,17 +242,52 @@ class DynamicObstacleSource(Node):
                 self.get_logger().warn('gazebo static wall spawn failed (gz transport)')
             return
 
+        if self.mode == 'scene':
+            scene_x, scene_y, scene_z = self._scene_visual_initial_pose_enu()
+            req = (
+                f'name: "{entity_name}", '
+                f'allow_renaming: false, '
+                f'sdf_filename: "{sdf_path}", '
+                f'pose: {{ position: {{ x: {scene_x:.3f}, y: {scene_y:.3f}, z: {scene_z:.3f} }}, '
+                f'orientation: {{ w: 1.0 }} }}'
+            )
+            ok = self._run_gz_service(self._gz_create_service, 'gz.msgs.EntityFactory', req, timeout_ms=1200)
+            self._spawn_done = bool(ok)
+            if self._spawn_done:
+                self._visual_last_ok_x = scene_x
+                self._visual_last_ok_y = scene_y
+                self._visual_last_ok_z = scene_z
+                self.get_logger().info(
+                    f'gazebo scene obstacle spawned successfully: entity={entity_name}, '
+                    f'ENU=({scene_x:.2f},{scene_y:.2f},{scene_z:.2f}), sdf={sdf_path}'
+                )
+            else:
+                # If the entity already exists, set_pose may still succeed.
+                self._spawn_done = self._set_visual_pose(scene_x, scene_y, scene_z, force=True)
+                if self._spawn_done:
+                    self._visual_last_ok_x = scene_x
+                    self._visual_last_ok_y = scene_y
+                    self._visual_last_ok_z = scene_z
+                    self.get_logger().info(
+                        f'gazebo scene obstacle already exists, pose sync enabled: entity={entity_name}'
+                    )
+                else:
+                    self.get_logger().warn(
+                        f'gazebo scene obstacle spawn failed: entity={entity_name}, sdf={sdf_path}'
+                    )
+            return
+
         # 先尝试直接设置位姿；若实体已存在即可立即联动
         if self._set_visual_pose(0.0, 0.0, float(self._p('z')), force=True):
             self._spawn_done = True
             self._visual_last_ok_x = 0.0
             self._visual_last_ok_y = 0.0
             self._visual_last_ok_z = float(self._p('z'))
-            self.get_logger().info('gazebo visual obstacle already exists, pose sync enabled')
+            self.get_logger().info(f'gazebo visual obstacle already exists, pose sync enabled: entity={entity_name}')
             return
 
         req = (
-            f'name: "{self.entity_name}", '
+            f'name: "{entity_name}", '
             f'allow_renaming: false, '
             f'sdf_filename: "{sdf_path}", '
             f'pose: {{ position: {{ x: 0.0, y: 0.0, z: {float(self._p("z")):.3f} }}, orientation: {{ w: 1.0 }} }}'
@@ -220,9 +295,9 @@ class DynamicObstacleSource(Node):
         ok = self._run_gz_service(self._gz_create_service, 'gz.msgs.EntityFactory', req, timeout_ms=1200)
         self._spawn_done = bool(ok)
         if self._spawn_done:
-            self.get_logger().info('gazebo visual obstacle spawned successfully (gz transport)')
+            self.get_logger().info(f'gazebo visual obstacle spawned successfully (gz transport): entity={entity_name}')
         else:
-            self.get_logger().warn('gazebo visual obstacle spawn failed (gz transport)')
+            self.get_logger().warn(f'gazebo visual obstacle spawn failed (gz transport): entity={entity_name}')
 
     def _prepare_wall_sdf(self):
         obstacles = self._configured_obstacles()
@@ -247,13 +322,59 @@ class DynamicObstacleSource(Node):
         )
         return tmp_path
 
+    def _scene_visual_initial_pose_enu(self):
+        scene = self._load_scene_config()
+        dynamic = scene.get('dynamic_obstacles') or []
+        for obs in dynamic:
+            if not isinstance(obs, dict):
+                continue
+            x, y, z, _, _, _ = self._scene_dynamic_state(obs, 0.0)
+            return self._ned_to_enu(x, y, z)
+        return 0.0, 0.0, float(self._p('z'))
+
+    def _prepare_scene_ball_sdf(self):
+        scene = self._load_scene_config()
+        radius = 0.5
+        dynamic = scene.get('dynamic_obstacles') or []
+        for obs in dynamic:
+            if isinstance(obs, dict) and str(obs.get('name', '')).strip():
+                radius = max(0.1, _finite_float(obs.get('radius'), 0.5))
+                break
+        sdf = f"""<?xml version="1.0" ?>
+<sdf version="1.9">
+  <model name="{self.scene_entity_name}">
+    <static>true</static>
+    <link name="body">
+      <visual name="visual">
+        <geometry>
+          <sphere>
+            <radius>{radius:.3f}</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <ambient>1 0.05 0.05 1</ambient>
+          <diffuse>1 0.05 0.05 1</diffuse>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>
+"""
+        tmp_path = os.path.join(tempfile.gettempdir(), 'xtd2_scene_dynamic_obstacle_1.sdf')
+        with open(tmp_path, 'w', encoding='utf-8') as f:
+            f.write(sdf)
+        self.get_logger().info(
+            f'scene visual sdf prepared: path={tmp_path}, radius={radius:.2f}'
+        )
+        return tmp_path
+
     def _set_visual_pose(self, x: float, y: float, z: float, force: bool = False) -> bool:
         if not self._gz_ready:
             return False
         if not force and not self._spawn_done:
             return False
         req = (
-            f'name: "{self.entity_name}", '
+            f'name: "{self._visual_obstacle_entity_name()}", '
             f'position: {{ x: {float(x):.3f}, y: {float(y):.3f}, z: {float(z):.3f} }}, '
             f'orientation: {{ w: 1.0 }}'
         )
@@ -386,6 +507,144 @@ class DynamicObstacleSource(Node):
     def _p(self, name: str) -> float:
         return float(self.get_parameter(name).value)
 
+    def _visual_obstacle_entity_name(self):
+        if self.mode == 'scene':
+            return self.scene_entity_name
+        return self.entity_name
+
+    def _load_scene_config(self):
+        config_path = str(self.get_parameter('scene_config').value or '').strip()
+        if not config_path:
+            if not self._scene_warned_no_config:
+                self._scene_warned_no_config = True
+                self.get_logger().warn('scene mode selected but scene_config is empty')
+            return {}
+        scene_path = _resolve_path(config_path)
+        try:
+            mtime = os.path.getmtime(scene_path)
+        except Exception as e:
+            self.get_logger().warn(f'scene config not readable: path={scene_path}, error={e}')
+            return {}
+        if self._scene_cache_path == scene_path and self._scene_cache_mtime == mtime:
+            return self._scene_cache
+        if yaml is None:
+            raise RuntimeError('PyYAML is required to read scene YAML files')
+        with open(scene_path, 'r', encoding='utf-8') as f:
+            data = yaml.safe_load(f) or {}
+        if not isinstance(data, dict):
+            raise ValueError(f'scene config must be a mapping: {scene_path}')
+        self._scene_cache_path = scene_path
+        self._scene_cache_mtime = mtime
+        self._scene_cache = data
+        meta = data.get('scene') or {}
+        dyn = data.get('dynamic_obstacles') or []
+        walls = ((data.get('static_obstacles') or {}).get('walls')) or []
+        self.get_logger().info(
+            f'scene config loaded: path={scene_path}, name={meta.get("name", "unnamed")}, '
+            f'dynamic_obstacles={len(dyn)}, static_walls={len(walls)}'
+        )
+        return data
+
+    def _scene_walls(self, scene):
+        walls = ((scene.get('static_obstacles') or {}).get('walls')) or []
+        normalized = []
+        for idx, wall in enumerate(walls, start=1):
+            if not isinstance(wall, dict):
+                continue
+            normalized.append(
+                {
+                    'name': str(wall.get('name', f'wall_{idx}')),
+                    'x': _finite_float(wall.get('x'), 0.0),
+                    'y': _finite_float(wall.get('y'), 0.0),
+                    'z': _finite_float(wall.get('z'), 0.9),
+                    'length': max(1.0, _finite_float(wall.get('length'), 5.0)),
+                    'thickness': max(0.1, _finite_float(wall.get('thickness'), 0.25)),
+                    'height': max(0.5, _finite_float(wall.get('height'), 1.8)),
+                    'segment_spacing': max(0.2, _finite_float(wall.get('segment_spacing'), 0.6)),
+                }
+            )
+        return normalized
+
+    def _scene_line_state(self, traj, t):
+        start_time = _finite_float(traj.get('start_time'), 0.0)
+        start = _vector3(traj.get('start'))
+        end = _vector3(traj.get('end'), start)
+        speed = max(0.0, _finite_float(traj.get('speed'), 0.0))
+        dx = end[0] - start[0]
+        dy = end[1] - start[1]
+        dz = end[2] - start[2]
+        dist = math.sqrt(dx * dx + dy * dy + dz * dz)
+        if dist <= 1e-9 or speed <= 1e-9 or t <= start_time:
+            return (*start, 0.0, 0.0, 0.0)
+        alpha = min(1.0, (t - start_time) * speed / dist)
+        x = start[0] + dx * alpha
+        y = start[1] + dy * alpha
+        z = start[2] + dz * alpha
+        if alpha >= 1.0:
+            return (x, y, z, 0.0, 0.0, 0.0)
+        return (x, y, z, dx / dist * speed, dy / dist * speed, dz / dist * speed)
+
+    def _scene_circle_state(self, traj, t):
+        start_time = _finite_float(traj.get('start_time'), 0.0)
+        center = _vector3(traj.get('center'))
+        radius = max(0.0, _finite_float(traj.get('radius'), 1.0))
+        omega = _finite_float(traj.get('angular_speed'), 0.0)
+        phase = _finite_float(traj.get('phase'), 0.0)
+        active_t = max(0.0, t - start_time)
+        theta = phase + omega * active_t
+        x = center[0] + radius * math.cos(theta)
+        y = center[1] + radius * math.sin(theta)
+        z = center[2]
+        if t < start_time:
+            return (x, y, z, 0.0, 0.0, 0.0)
+        vx = -radius * omega * math.sin(theta)
+        vy = radius * omega * math.cos(theta)
+        return (x, y, z, vx, vy, 0.0)
+
+    def _scene_dynamic_state(self, obs, t):
+        traj = obs.get('trajectory') or {}
+        traj_type = str(traj.get('type', 'line')).strip().lower()
+        if traj_type == 'circle':
+            return self._scene_circle_state(traj, t)
+        if traj_type not in ('line', 'static'):
+            name = str(obs.get('name', 'dynamic_obstacle'))
+            key = (name, traj_type)
+            if key not in self._scene_warned_unsupported:
+                self._scene_warned_unsupported.add(key)
+                self.get_logger().warn(f'unsupported scene trajectory type={traj_type}, fallback to line: obstacle={name}')
+        return self._scene_line_state(traj, t)
+
+    def _build_scene_payload(self, t):
+        scene = self._load_scene_config()
+        obstacles = []
+        obs_id = 1
+
+        for wall in self._scene_walls(scene):
+            points = WallObstacle(**wall).to_collision_points(start_obs_id=obs_id)
+            obstacles.extend(points)
+            obs_id += len(points)
+
+        for obs in scene.get('dynamic_obstacles') or []:
+            if not isinstance(obs, dict):
+                continue
+            x, y, z, vx, vy, vz = self._scene_dynamic_state(obs, t)
+            obstacles.append(
+                {
+                    'obs_id': obs_id,
+                    'name': str(obs.get('name', f'dynamic_obstacle_{obs_id}')),
+                    'x': x,
+                    'y': y,
+                    'z': z,
+                    'vx': vx,
+                    'vy': vy,
+                    'vz': vz,
+                    'radius': max(0.05, _finite_float(obs.get('radius'), 0.5)),
+                }
+            )
+            obs_id += 1
+
+        return {'stamp': time.time(), 'scene_time': t, 'obstacles': obstacles}
+
     def _blend_center(self, t: float):
         start_x = self._p('start_center_x')
         start_y = self._p('start_center_y')
@@ -458,6 +717,18 @@ class DynamicObstacleSource(Node):
         return [WallObstacle(**wall) for wall in self._configured_walls()]
 
     def _configured_target(self):
+        scene_path = str(self.get_parameter('scene_config').value or '').strip()
+        if self.mode == 'scene' and scene_path:
+            scene = self._load_scene_config()
+            target = scene.get('target') or {}
+            if isinstance(target, dict):
+                default = {'x': 20.0, 'y': 0.0, 'z': -3.0, 'y_spacing': 1.8}
+                return {
+                    'x': _finite_float(target.get('x', default['x']), default['x']),
+                    'y': _finite_float(target.get('y', default['y']), default['y']),
+                    'z': _finite_float(target.get('z', default['z']), default['z']),
+                    'y_spacing': _finite_float(target.get('y_spacing', default['y_spacing']), default['y_spacing']),
+                }
         config_path = str(self.get_parameter('obstacle_config').value or '').strip()
         if config_path:
             return normalized_target(load_obstacle_config(config_path))
@@ -472,7 +743,21 @@ class DynamicObstacleSource(Node):
         t = time.time() - self.t0
         z = self._p('z')
 
-        if self.mode == 'static_wall':
+        if self.mode == 'scene':
+            payload = self._build_scene_payload(t)
+            dynamic_items = [
+                obs for obs in payload.get('obstacles', [])
+                if str(obs.get('name', '')).strip()
+            ]
+            if dynamic_items:
+                first = dynamic_items[0]
+                x, y, z = self._ned_to_enu(first.get('x', 0.0), first.get('y', 0.0), first.get('z', 0.0))
+                vx, vy, _ = self._ned_to_enu(first.get('vx', 0.0), first.get('vy', 0.0), 0.0)
+                r = float(first.get('radius', 0.3))
+            else:
+                x = y = vx = vy = 0.0
+                r = 0.3
+        elif self.mode == 'static_wall':
             obstacles_cfg = self._configured_obstacles()
             base_obstacle = obstacles_cfg[0]
             wall_x_ned = float(base_obstacle.x)
@@ -574,7 +859,8 @@ class DynamicObstacleSource(Node):
                         if now - self._last_pose_warn_t > 1.0:
                             self._last_pose_warn_t = now
                             self.get_logger().warn(
-                                f'visual pose sync failed, keep last pose, entity={self.entity_name}, world={self.world_name}'
+                                f'visual pose sync failed, keep last pose, '
+                                f'entity={self._visual_obstacle_entity_name()}, world={self.world_name}'
                             )
 
         now = time.time()
@@ -584,6 +870,12 @@ class DynamicObstacleSource(Node):
                 self.get_logger().info(
                     f'wall publish: NED=({wall_x_ned:.2f},{wall_y_ned:.2f}), '
                     f'ENU=({x:.2f},{y:.2f},{z:.2f}), segments={len(payload["obstacles"])}'
+                )
+            elif self.mode == 'scene':
+                dynamic_count = len([obs for obs in payload.get('obstacles', []) if str(obs.get('name', '')).strip()])
+                self.get_logger().info(
+                    f'scene publish: t={payload.get("scene_time", 0.0):.2f}, '
+                    f'obstacles={len(payload["obstacles"])}, dynamic={dynamic_count}'
                 )
             else:
                 self.get_logger().info(
@@ -613,7 +905,7 @@ def main():
     parser.add_argument('--rate', type=float, default=10.0)
     parser.add_argument('--world', type=str, default='default')
     parser.add_argument('--visualize-gz', type=int, default=1, help='1 to visualize obstacle entity in Gazebo')
-    parser.add_argument('--mode', type=str, default='moving_ball', choices=['moving_ball', 'static_wall'])
+    parser.add_argument('--mode', type=str, default='moving_ball', choices=['moving_ball', 'static_wall', 'scene'])
     parser.add_argument('--start-center-x', type=float, default=18.0)
     parser.add_argument('--start-center-y', type=float, default=6.0)
     parser.add_argument('--active-center-x', type=float, default=5.5)
@@ -628,6 +920,7 @@ def main():
     parser.add_argument('--wall-height', type=float, default=1.8)
     parser.add_argument('--wall-segment-spacing', type=float, default=0.6)
     parser.add_argument('--obstacle-config', type=str, default='')
+    parser.add_argument('--scene-config', type=str, default='')
     parser.add_argument('--second-wall-enable', type=int, default=1)
     parser.add_argument('--second-wall-dx', type=float, default=15.0)
     parser.add_argument('--second-wall-dy', type=float, default=109.0)
@@ -664,6 +957,7 @@ def main():
         Parameter('wall_height', Parameter.Type.DOUBLE, float(args.wall_height)),
         Parameter('wall_segment_spacing', Parameter.Type.DOUBLE, float(args.wall_segment_spacing)),
         Parameter('obstacle_config', Parameter.Type.STRING, str(args.obstacle_config)),
+        Parameter('scene_config', Parameter.Type.STRING, str(args.scene_config)),
         Parameter('second_wall_enable', Parameter.Type.INTEGER, int(args.second_wall_enable)),
         Parameter('second_wall_dx', Parameter.Type.DOUBLE, float(args.second_wall_dx)),
         Parameter('second_wall_dy', Parameter.Type.DOUBLE, float(args.second_wall_dy)),

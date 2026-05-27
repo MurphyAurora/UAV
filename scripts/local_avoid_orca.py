@@ -22,6 +22,7 @@ class LocalAvoidOrcaLite(Node):
         obs_gain: float = 0.8,
         obs_influence_radius: float = 2.0,
         enable_after_z: float = -0.8,
+        use_world_state: bool = False,
     ):
         super().__init__('local_avoid_orca_lite')
         self.num_drones = num_drones
@@ -31,6 +32,7 @@ class LocalAvoidOrcaLite(Node):
         self.obs_gain = obs_gain
         self.obs_influence_radius = obs_influence_radius
         self.enable_after_z = enable_after_z
+        self.use_world_state = bool(use_world_state)
         self.states = {}
         self.dynamic_obstacles = []
         # 新增：速度滤波缓存，解决抖振
@@ -55,13 +57,15 @@ class LocalAvoidOrcaLite(Node):
         }
         self.timer = self.create_timer(0.05, self._run)  # 20Hz
         self._last_log_t = 0.0
+        self._last_obs_log_t = 0.0
+        self._last_obs_effect_log_t = 0.0
         self._last_gate_log_t = 0.0
         self._gate_unlocked_logged = False
         self._airborne_gate_unlocked = False
         self.get_logger().info(
             f'local_avoid_orca_lite started: num={self.num_drones}, safe_radius={self.safe_radius}, '
             f'max_speed={self.max_speed}, obs_influence_radius={self.obs_influence_radius}, '
-            f'enable_after_z={self.enable_after_z}'
+            f'enable_after_z={self.enable_after_z}, use_world_state={int(self.use_world_state)}'
         )
 
     def _on_params_changed(self, params):
@@ -136,12 +140,27 @@ class LocalAvoidOrcaLite(Node):
             for o in arr:
                 tmp.append(
                     {
+                        'name': str(o.get('name', '')),
                         'x': float(o.get('x', 0.0)),
                         'y': float(o.get('y', 0.0)),
                         'radius': float(o.get('radius', 0.3)),
                     }
                 )
             self.dynamic_obstacles = tmp
+            now = time.time()
+            if now - self._last_obs_log_t > 1.0:
+                self._last_obs_log_t = now
+                named = [obs for obs in tmp if obs.get('name')]
+                sample = named[0] if named else (tmp[0] if tmp else None)
+                if sample is None:
+                    self.get_logger().info('orca obs input: total=0, named_dynamic=0')
+                else:
+                    self.get_logger().info(
+                        f'orca obs input: total={len(tmp)}, named_dynamic={len(named)}, '
+                        f'sample_name={sample.get("name", "") or "unnamed"}, '
+                        f'sample=({sample["x"]:.2f},{sample["y"]:.2f}), '
+                        f'radius={sample["radius"]:.2f}'
+                    )
         except Exception:
             return
 
@@ -190,6 +209,9 @@ class LocalAvoidOrcaLite(Node):
             )
 
         min_dist = 999.0
+        min_obs_dist = 999.0
+        obs_trigger_count = 0
+        max_obs_strength = 0.0
         for i in range(1, self.num_drones + 1):
             si = self.states.get(i)
             if si is None:
@@ -197,7 +219,7 @@ class LocalAvoidOrcaLite(Node):
 
             vx = 0.0
             vy = 0.0
-            xi, yi = float(si['x']), float(si['y'])
+            xi, yi = self._state_xy(si)
 
             for j in range(1, self.num_drones + 1):
                 if i == j:
@@ -205,7 +227,7 @@ class LocalAvoidOrcaLite(Node):
                 sj = self.states.get(j)
                 if sj is None:
                     continue
-                xj, yj = float(sj['x']), float(sj['y'])
+                xj, yj = self._state_xy(sj)
                 dx = xi - xj
                 dy = yi - yj
                 dist = math.hypot(dx, dy)
@@ -223,8 +245,13 @@ class LocalAvoidOrcaLite(Node):
                 dyo = yi - obs['y']
                 dist_o = math.hypot(dxo, dyo)
                 r_eff = self.obs_influence_radius + obs['radius']
+                if dist_o < min_obs_dist:
+                    min_obs_dist = dist_o
                 if 1e-6 < dist_o < r_eff:
                     obs_strength = self.obs_gain * (r_eff - dist_o) / max(r_eff, 1e-6)
+                    obs_trigger_count += 1
+                    if obs_strength > max_obs_strength:
+                        max_obs_strength = obs_strength
                     vx += obs_strength * (dxo / dist_o)
                     vy += obs_strength * (dyo / dist_o)
 
@@ -255,6 +282,19 @@ class LocalAvoidOrcaLite(Node):
         if min_dist < 999.0 and now - self._last_log_t > 1.0:
             self._last_log_t = now
             self.get_logger().info(f'orca-lite running, min_dist={min_dist:.2f}')
+        if now - self._last_obs_effect_log_t > 1.0:
+            self._last_obs_effect_log_t = now
+            min_obs_text = f'{min_obs_dist:.2f}' if min_obs_dist < 999.0 else 'nan'
+            self.get_logger().info(
+                f'orca obs effect: min_obs_dist={min_obs_text}, '
+                f'triggers={obs_trigger_count}, max_strength={max_obs_strength:.3f}, '
+                f'use_world_state={int(self.use_world_state)}'
+            )
+
+    def _state_xy(self, state):
+        if self.use_world_state and 'world_x' in state and 'world_y' in state:
+            return float(state['world_x']), float(state['world_y'])
+        return float(state['x']), float(state['y'])
 
 
 def main():
@@ -266,6 +306,7 @@ def main():
     parser.add_argument('--obs-gain', type=float, default=0.8)
     parser.add_argument('--obs-influence-radius', type=float, default=2.0)
     parser.add_argument('--enable-after-z', type=float, default=-0.8)
+    parser.add_argument('--use-world-state', type=int, default=0)
     args, _ = parser.parse_known_args()
 
     rclpy.init()
@@ -277,6 +318,7 @@ def main():
         obs_gain=args.obs_gain,
         obs_influence_radius=args.obs_influence_radius,
         enable_after_z=args.enable_after_z,
+        use_world_state=(int(args.use_world_state) != 0),
     )
     try:
         rclpy.spin(node)
