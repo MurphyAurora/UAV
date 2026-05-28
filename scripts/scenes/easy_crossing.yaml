@@ -1,11 +1,11 @@
 # Layer 1: 场景配置层。
-# easy benchmark 场景：单个慢速穿越障碍，适合离线可复现性验证。
+# easy benchmark 场景：单个慢速周期穿越障碍，适合离线可复现性验证。
 scene:
   name: easy_crossing
   version: 1
   seed: 101
   level: easy
-  duration: 30.0
+  duration: 90.0
   dt: 0.5
 
 world:
@@ -42,7 +42,7 @@ dynamic_obstacles:
     type: sphere
     radius: 0.45
     trajectory:
-      type: line
+      type: ping_pong_line
       start: [12.0, -8.0, -3.0]
       end: [12.0, 12.0, -3.0]
       speed: 0.7
@@ -54,4 +54,4 @@ difficulty:
   obstacle_count: 1
   max_obstacle_speed: 0.7
   corridor_width_hint: 20.0
-  notes: Single slow crossing obstacle for smoke testing reproducibility.
+  notes: Single slow periodic crossing obstacle for smoke testing reproducibility.

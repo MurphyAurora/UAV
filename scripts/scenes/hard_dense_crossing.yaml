@@ -1,11 +1,11 @@
 # Layer 1: 场景配置层。
-# hard benchmark 场景：密集穿越和目标区域巡逻，用于高难度压力测试。
+# hard benchmark 场景：密集周期穿越和目标区域巡逻，用于高难度压力测试。
 scene:
   name: hard_dense_crossing
   version: 1
   seed: 303
   level: hard
-  duration: 50.0
+  duration: 90.0
   dt: 0.25
 
 world:
@@ -60,7 +60,7 @@ dynamic_obstacles:
     type: sphere
     radius: 0.55
     trajectory:
-      type: line
+      type: ping_pong_line
       start: [10.0, -14.0, -3.0]
       end: [10.0, 18.0, -3.0]
       speed: 1.2
@@ -70,7 +70,7 @@ dynamic_obstacles:
     type: sphere
     radius: 0.55
     trajectory:
-      type: line
+      type: ping_pong_line
       start: [16.0, 20.0, -3.0]
       end: [16.0, -14.0, -3.0]
       speed: 1.3
@@ -80,7 +80,7 @@ dynamic_obstacles:
     type: sphere
     radius: 0.50
     trajectory:
-      type: line
+      type: ping_pong_line
       start: [22.0, -15.0, -3.0]
       end: [30.0, 18.0, -3.0]
       speed: 1.1
@@ -114,4 +114,4 @@ difficulty:
   obstacle_count: 5
   max_obstacle_speed: 1.8
   corridor_width_hint: 8.0
-  notes: Dense crossing and target-area patrol for stress testing planners later.
+  notes: Dense periodic crossing and target-area patrol for stress testing planners later.

@@ -1,0 +1,172 @@
+说明：
+1. 当前这份命令用于覆盖式调试，日志写到 ~/ws_xtd2/logs/algorithm_eval_tmp/，结果写到 results/algorithm_eval_tmp/。
+2. 三个 benchmark 场景已经统一为 ping_pong_line 周期穿越障碍。
+3. 每次换场景前，先停掉上一轮 start1.sh / Gazebo / PX4 / recorder，再启动下一轮。
+4. 终端1启动后先看 dynamic_obstacles.log，确认出现 scene clock started after takeoff，再开始终端2录制。
+
+
+====================
+easy_crossing
+====================
+
+终端1：启动仿真、动态障碍、ORCA
+
+cd ~/ws_xtd2/scripts
+
+DYNAMIC_OBS_MODE=scene \
+DYNAMIC_OBS_SCENE_CONFIG=scenes/easy_crossing.yaml \
+DYNAMIC_OBS_SCENE_CLOCK_MODE=auto_takeoff \
+DYNAMIC_OBS_SCENE_START_NUM_DRONES=5 \
+DYNAMIC_OBS_SCENE_START_Z_THRESHOLD=-2.0 \
+DYNAMIC_OBS_SCENE_START_STABLE_SEC=2.0 \
+ORCA_USE_WORLD_STATE=1 \
+ORCA_OBS_INFLUENCE_RADIUS=3.5 \
+ORCA_OBS_GAIN=1.2 \
+ORCA_SAFE_RADIUS=1.2 \
+./start1.sh 5
+
+检查日志：
+
+tail -f ~/ws_xtd2/logs/dynamic_obstacles.log
+
+需要看到：
+scene clock config: mode=auto_takeoff
+scene clock started after takeoff
+scene publish: t=0.xx
+
+终端2：录制真实运行数据
+
+cd ~/ws_xtd2/scripts
+
+python3 ros_analysis/ros_run_recorder.py \
+  --output-dir ~/ws_xtd2/logs/algorithm_eval_tmp/easy_current \
+  --duration-sec 120
+
+终端3：覆盖生成指标和图
+
+cd ~/ws_xtd2/scripts
+
+TARGET_X=30.0 TARGET_Y=26.0 TARGET_Z=-3.0 \
+EVAL_OUTPUT_MODE=debug OVERWRITE=1 \
+./run_algorithm_eval_once.sh \
+  ~/ws_xtd2/logs/algorithm_eval_tmp/easy_current
+
+
+====================
+medium_multi_crossing
+====================
+
+终端1：启动仿真、动态障碍、ORCA
+
+cd ~/ws_xtd2/scripts
+
+DYNAMIC_OBS_MODE=scene \
+DYNAMIC_OBS_SCENE_CONFIG=scenes/medium_multi_crossing.yaml \
+DYNAMIC_OBS_SCENE_CLOCK_MODE=auto_takeoff \
+DYNAMIC_OBS_SCENE_START_NUM_DRONES=5 \
+DYNAMIC_OBS_SCENE_START_Z_THRESHOLD=-2.0 \
+DYNAMIC_OBS_SCENE_START_STABLE_SEC=2.0 \
+ORCA_USE_WORLD_STATE=1 \
+ORCA_OBS_INFLUENCE_RADIUS=3.5 \
+ORCA_OBS_GAIN=1.2 \
+ORCA_SAFE_RADIUS=1.2 \
+./start1.sh 5
+
+检查日志：
+
+tail -f ~/ws_xtd2/logs/dynamic_obstacles.log
+
+需要看到：
+scene clock config: mode=auto_takeoff
+scene clock started after takeoff
+scene publish: t=0.xx
+
+终端2：录制真实运行数据
+
+cd ~/ws_xtd2/scripts
+
+python3 ros_analysis/ros_run_recorder.py \
+  --output-dir ~/ws_xtd2/logs/algorithm_eval_tmp/medium_current \
+  --duration-sec 120
+
+终端3：覆盖生成指标和图
+
+cd ~/ws_xtd2/scripts
+
+TARGET_X=32.0 TARGET_Y=24.0 TARGET_Z=-3.0 \
+EVAL_OUTPUT_MODE=debug OVERWRITE=1 \
+./run_algorithm_eval_once.sh \
+  ~/ws_xtd2/logs/algorithm_eval_tmp/medium_current
+
+
+====================
+hard_dense_crossing
+====================
+
+终端1：启动仿真、动态障碍、ORCA
+
+cd ~/ws_xtd2/scripts
+
+DYNAMIC_OBS_MODE=scene \
+DYNAMIC_OBS_SCENE_CONFIG=scenes/hard_dense_crossing.yaml \
+DYNAMIC_OBS_SCENE_CLOCK_MODE=auto_takeoff \
+DYNAMIC_OBS_SCENE_START_NUM_DRONES=5 \
+DYNAMIC_OBS_SCENE_START_Z_THRESHOLD=-2.0 \
+DYNAMIC_OBS_SCENE_START_STABLE_SEC=2.0 \
+ORCA_USE_WORLD_STATE=1 \
+ORCA_OBS_INFLUENCE_RADIUS=3.5 \
+ORCA_OBS_GAIN=1.2 \
+ORCA_SAFE_RADIUS=1.2 \
+./start1.sh 5
+
+检查日志：
+
+tail -f ~/ws_xtd2/logs/dynamic_obstacles.log
+
+需要看到：
+scene clock config: mode=auto_takeoff
+scene clock started after takeoff
+scene publish: t=0.xx
+
+终端2：录制真实运行数据
+
+cd ~/ws_xtd2/scripts
+
+python3 ros_analysis/ros_run_recorder.py \
+  --output-dir ~/ws_xtd2/logs/algorithm_eval_tmp/hard_current \
+  --duration-sec 150
+
+终端3：覆盖生成指标和图
+
+cd ~/ws_xtd2/scripts
+
+TARGET_X=35.0 TARGET_Y=24.0 TARGET_Z=-3.0 \
+EVAL_OUTPUT_MODE=debug OVERWRITE=1 \
+./run_algorithm_eval_once.sh \
+  ~/ws_xtd2/logs/algorithm_eval_tmp/hard_current
+
+
+====================
+调试通过后再保存正式论文结果
+====================
+
+easy:
+
+TARGET_X=30.0 TARGET_Y=26.0 TARGET_Z=-3.0 \
+./run_algorithm_eval_once.sh \
+  ~/ws_xtd2/logs/algorithm_eval_tmp/easy_current \
+  results/algorithm_eval_v1/easy_crossing_orca_pingpong_v1
+
+medium:
+
+TARGET_X=32.0 TARGET_Y=24.0 TARGET_Z=-3.0 \
+./run_algorithm_eval_once.sh \
+  ~/ws_xtd2/logs/algorithm_eval_tmp/medium_current \
+  results/algorithm_eval_v1/medium_multi_crossing_orca_pingpong_v1
+
+hard:
+
+TARGET_X=35.0 TARGET_Y=24.0 TARGET_Z=-3.0 \
+./run_algorithm_eval_once.sh \
+  ~/ws_xtd2/logs/algorithm_eval_tmp/hard_current \
+  results/algorithm_eval_v1/hard_dense_crossing_orca_pingpong_v1

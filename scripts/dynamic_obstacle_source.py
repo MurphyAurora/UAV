@@ -127,9 +127,14 @@ class DynamicObstacleSource(Node):
         self.declare_parameter('visual_max_step', 0.15)
         self.declare_parameter('trajectory_record_path', '')
         self.declare_parameter('trajectory_record_dt', 0.0)
+        self.declare_parameter('scene_clock_mode', 'wall_time')
+        self.declare_parameter('scene_start_num_drones', 0)
+        self.declare_parameter('scene_start_z_threshold', -2.0)
+        self.declare_parameter('scene_start_stable_sec', 2.0)
 
         self.t0 = time.time()
         self.timer = self.create_timer(max(0.05, 1.0 / rate_hz), self._publish)
+        self.create_subscription(String, '/xtdrone2/swarm/state_exchange', self._swarm_state_cb, 10)
         self._last_log_t = 0.0
         self._last_pose_set_t = 0.0
         self._last_pose_warn_t = 0.0
@@ -152,6 +157,11 @@ class DynamicObstacleSource(Node):
         self._scene_warned_no_config = False
         self._scene_warned_unsupported = set()
         self._last_trajectory_record_t = None
+        self._latest_swarm_states = {}
+        self._takeoff_ready_since = None
+        self._scene_clock_started = False
+        self._scene_clock_start_wall_t = None
+        self._last_scene_clock_log_t = 0.0
         self.get_logger().info(
             'dynamic_obstacle_source started, publishing /xtdrone2/swarm/dynamic_obstacles, '
             f'visualize_gz={self.visualize_gz}, world={self.world_name}, mode={self.mode}'
@@ -160,6 +170,18 @@ class DynamicObstacleSource(Node):
         # 注意：目标球/墙体的初始位姿依赖运行参数。
         # 不要在 __init__ 里立刻 spawn，否则会先用 declare_parameter 的默认值创建，
         # 再被 main() 的 set_parameters 覆盖，导致 Gazebo 视觉实体与发布出去的 marker 不一致。
+
+    def _log_scene_clock_config_once(self):
+        if getattr(self, '_scene_clock_config_logged', False):
+            return
+        self._scene_clock_config_logged = True
+        self.get_logger().info(
+            'scene clock config: '
+            f'mode={self._scene_clock_mode()}, '
+            f'start_num_drones={int(self.get_parameter("scene_start_num_drones").value)}, '
+            f'z_threshold={float(self.get_parameter("scene_start_z_threshold").value):.2f}, '
+            f'stable_sec={float(self.get_parameter("scene_start_stable_sec").value):.1f}'
+        )
 
     @staticmethod
     def _enu_to_ned(x_enu: float, y_enu: float, z_enu: float):
@@ -526,6 +548,74 @@ class DynamicObstacleSource(Node):
     def _p(self, name: str) -> float:
         return float(self.get_parameter(name).value)
 
+    def _scene_clock_mode(self):
+        return str(self.get_parameter('scene_clock_mode').value or 'wall_time').strip().lower()
+
+    def _swarm_state_cb(self, msg):
+        try:
+            payload = json.loads(msg.data)
+        except Exception:
+            return
+        states = payload.get('states', [])
+        now = time.time()
+        for state in states:
+            try:
+                drone_id = int(state.get('id', -1))
+            except Exception:
+                continue
+            if drone_id <= 0:
+                continue
+            self._latest_swarm_states[drone_id] = {
+                'time': now,
+                'z': _finite_float(state.get('z'), 0.0),
+            }
+
+    def _takeoff_ready(self, now):
+        expected = int(self.get_parameter('scene_start_num_drones').value)
+        if expected <= 0:
+            expected = int(self.get_parameter('target_ball_num_drones').value)
+        expected = max(1, expected)
+        z_threshold = float(self.get_parameter('scene_start_z_threshold').value)
+        recent_timeout = 2.0
+        ready_ids = [
+            drone_id for drone_id, state in self._latest_swarm_states.items()
+            if now - state.get('time', 0.0) <= recent_timeout
+            and state.get('z', 0.0) <= z_threshold
+        ]
+        return len(set(ready_ids)) >= expected, len(set(ready_ids)), expected, z_threshold
+
+    def _scene_time(self, wall_t):
+        mode = self._scene_clock_mode()
+        if mode not in ('auto_takeoff', 'takeoff'):
+            return wall_t
+
+        now = time.time()
+        if not self._scene_clock_started:
+            ready, ready_count, expected, z_threshold = self._takeoff_ready(now)
+            stable_sec = max(0.0, float(self.get_parameter('scene_start_stable_sec').value))
+            if ready:
+                if self._takeoff_ready_since is None:
+                    self._takeoff_ready_since = now
+                if now - self._takeoff_ready_since >= stable_sec:
+                    self._scene_clock_started = True
+                    self._scene_clock_start_wall_t = now
+                    self.get_logger().info(
+                        'scene clock started after takeoff: '
+                        f'ready_drones={ready_count}/{expected}, z_threshold={z_threshold:.2f}, '
+                        f'stable_sec={stable_sec:.1f}'
+                    )
+            else:
+                self._takeoff_ready_since = None
+                if now - self._last_scene_clock_log_t > 2.0:
+                    self._last_scene_clock_log_t = now
+                    self.get_logger().info(
+                        'scene clock waiting for takeoff: '
+                        f'ready_drones={ready_count}/{expected}, z_threshold={z_threshold:.2f}'
+                    )
+            return 0.0
+
+        return max(0.0, now - self._scene_clock_start_wall_t)
+
     def _visual_obstacle_entity_name(self):
         if self.mode == 'scene':
             return self.scene_entity_name
@@ -603,6 +693,35 @@ class DynamicObstacleSource(Node):
             return (x, y, z, 0.0, 0.0, 0.0)
         return (x, y, z, dx / dist * speed, dy / dist * speed, dz / dist * speed)
 
+    def _scene_ping_pong_line_state(self, traj, t):
+        start_time = _finite_float(traj.get('start_time'), 0.0)
+        start = _vector3(traj.get('start'))
+        end = _vector3(traj.get('end'), start)
+        speed = max(0.0, _finite_float(traj.get('speed'), 0.0))
+        dx = end[0] - start[0]
+        dy = end[1] - start[1]
+        dz = end[2] - start[2]
+        dist = math.sqrt(dx * dx + dy * dy + dz * dz)
+        if dist <= 1e-9 or speed <= 1e-9 or t <= start_time:
+            return (*start, 0.0, 0.0, 0.0)
+
+        active_t = t - start_time
+        leg_progress = (active_t * speed / dist) % 2.0
+        forward = leg_progress <= 1.0
+        alpha = leg_progress if forward else 2.0 - leg_progress
+        direction = 1.0 if forward else -1.0
+        x = start[0] + dx * alpha
+        y = start[1] + dy * alpha
+        z = start[2] + dz * alpha
+        return (
+            x,
+            y,
+            z,
+            direction * dx / dist * speed,
+            direction * dy / dist * speed,
+            direction * dz / dist * speed,
+        )
+
     def _scene_circle_state(self, traj, t):
         start_time = _finite_float(traj.get('start_time'), 0.0)
         center = _vector3(traj.get('center'))
@@ -625,6 +744,8 @@ class DynamicObstacleSource(Node):
         traj_type = str(traj.get('type', 'line')).strip().lower()
         if traj_type == 'circle':
             return self._scene_circle_state(traj, t)
+        if traj_type in ('ping_pong_line', 'pingpong_line', 'line_ping_pong'):
+            return self._scene_ping_pong_line_state(traj, t)
         if traj_type not in ('line', 'static'):
             name = str(obs.get('name', 'dynamic_obstacle'))
             key = (name, traj_type)
@@ -817,10 +938,13 @@ class DynamicObstacleSource(Node):
         }
 
     def _publish(self):
-        t = time.time() - self.t0
+        wall_t = time.time() - self.t0
+        t = wall_t
         z = self._p('z')
 
         if self.mode == 'scene':
+            self._log_scene_clock_config_once()
+            t = self._scene_time(wall_t)
             payload = self._build_scene_payload(t)
             dynamic_items = [
                 obs for obs in payload.get('obstacles', [])
@@ -1013,6 +1137,10 @@ def main():
     parser.add_argument('--target-ball-y-spacing', '--target-marker-y-spacing', dest='target_ball_y_spacing', type=float, default=1.8)
     parser.add_argument('--trajectory-record-path', type=str, default='')
     parser.add_argument('--trajectory-record-dt', type=float, default=0.0)
+    parser.add_argument('--scene-clock-mode', type=str, default='wall_time', choices=['wall_time', 'auto_takeoff', 'takeoff'])
+    parser.add_argument('--scene-start-num-drones', type=int, default=0)
+    parser.add_argument('--scene-start-z-threshold', type=float, default=-2.0)
+    parser.add_argument('--scene-start-stable-sec', type=float, default=2.0)
     args, _ = parser.parse_known_args()
 
     rclpy.init()
@@ -1052,6 +1180,10 @@ def main():
         Parameter('target_ball_y_spacing', Parameter.Type.DOUBLE, float(args.target_ball_y_spacing)),
         Parameter('trajectory_record_path', Parameter.Type.STRING, str(args.trajectory_record_path)),
         Parameter('trajectory_record_dt', Parameter.Type.DOUBLE, float(args.trajectory_record_dt)),
+        Parameter('scene_clock_mode', Parameter.Type.STRING, str(args.scene_clock_mode)),
+        Parameter('scene_start_num_drones', Parameter.Type.INTEGER, int(args.scene_start_num_drones)),
+        Parameter('scene_start_z_threshold', Parameter.Type.DOUBLE, float(args.scene_start_z_threshold)),
+        Parameter('scene_start_stable_sec', Parameter.Type.DOUBLE, float(args.scene_start_stable_sec)),
     ])
     if node.visualize_gz:
         node._setup_gz_visual()

@@ -93,6 +93,37 @@ def line_state(traj, t):
     return (x, y, z, dx / dist * speed, dy / dist * speed, dz / dist * speed)
 
 
+def ping_pong_line_state(traj, t):
+    """Line trajectory that repeatedly moves start->end->start."""
+    start_time = finite_float(traj.get('start_time'), 0.0)
+    start = vector3(traj.get('start'))
+    end = vector3(traj.get('end'), start)
+    speed = max(0.0, finite_float(traj.get('speed'), 0.0))
+    dx = end[0] - start[0]
+    dy = end[1] - start[1]
+    dz = end[2] - start[2]
+    dist = math.sqrt(dx * dx + dy * dy + dz * dz)
+    if dist <= 1e-9 or speed <= 1e-9 or t <= start_time:
+        return (*start, 0.0, 0.0, 0.0)
+
+    active_t = t - start_time
+    leg_progress = (active_t * speed / dist) % 2.0
+    forward = leg_progress <= 1.0
+    alpha = leg_progress if forward else 2.0 - leg_progress
+    direction = 1.0 if forward else -1.0
+    x = start[0] + dx * alpha
+    y = start[1] + dy * alpha
+    z = start[2] + dz * alpha
+    return (
+        x,
+        y,
+        z,
+        direction * dx / dist * speed,
+        direction * dy / dist * speed,
+        direction * dz / dist * speed,
+    )
+
+
 def circle_state(traj, t):
     start_time = finite_float(traj.get('start_time'), 0.0)
     center = vector3(traj.get('center'))
@@ -150,6 +181,8 @@ def generate_rows(scene):
             traj_type = str(traj.get('type', 'line')).strip().lower()
             if traj_type == 'circle':
                 state = circle_state(traj, t)
+            elif traj_type in ('ping_pong_line', 'pingpong_line', 'line_ping_pong'):
+                state = ping_pong_line_state(traj, t)
             elif traj_type == 'random_walk':
                 name = str(obs.get('name', f'obstacle_{len(random_cache) + 1}'))
                 if name not in random_cache:

@@ -75,6 +75,10 @@
   - 自动统计动态障碍轨迹范围、无人机到障碍物的最近距离、ORCA 避障速度输出。
   - 用于判断“是否真的进入避障范围”和“ORCA 是否真的输出过非零避障速度”。
 
+- `ros_analysis/metrics.py`
+  - 统一计算算法级评价指标。
+  - 包括路径长度、任务时间、碰撞次数、最小安全净距、避障成功率、控制平滑度和仿真实时率。
+
 - `ros_analysis/plot_ros_run.py`
   - 读取 `ros_analysis/ros_run_recorder.py` 保存的 CSV。
   - 绘制真实无人机轨迹、动态障碍轨迹、最近距离点和 ORCA 非零输出段。
@@ -301,7 +305,8 @@ obs_id, x, y, z, vx, vy, vz, radius
 
 - `x/y/z` 使用 NED 坐标，和当前 swarm-control 侧保持一致。
 - 静态墙会转换成一串 collision points。
-- 动态障碍会按 YAML 中的 `line` 或 `circle` 轨迹实时更新。
+- 动态障碍会按 YAML 中的 `line`、`ping_pong_line` 或 `circle` 轨迹实时更新。
+- `ping_pong_line` 表示障碍在 `start` 和 `end` 之间周期往返，适合构造持续穿越任务走廊的动态障碍场。
 - 当前只保证 ROS topic 数据发布；Gazebo 中多个动态障碍球的可视化还没有做。
 
 ## 算法接收验证
@@ -428,6 +433,27 @@ DYNAMIC_OBS_SCENE_CONFIG=~/ws_xtd2/scripts/scenes/easy_flight_reaction.yaml \
 DYNAMIC_OBS_VISUALIZE_GZ=1 \
 ORCA_USE_WORLD_STATE=1 \
 ./start1.sh 5
+```
+
+如果要跑 `medium_multi_crossing.yaml` 或 `hard_dense_crossing.yaml` 这类前几十秒发生穿越的场景，建议启用自动起飞同步。这样动态障碍的 `scene_time` 会在全部无人机起飞到指定高度并稳定后才从 0 开始，避免无人机还在起飞时障碍已经跑完：
+
+```bash
+DYNAMIC_OBS_ENABLE=1 \
+DYNAMIC_OBS_MODE=scene \
+DYNAMIC_OBS_SCENE_CONFIG=~/ws_xtd2/scripts/scenes/medium_multi_crossing.yaml \
+DYNAMIC_OBS_SCENE_CLOCK_MODE=auto_takeoff \
+DYNAMIC_OBS_SCENE_START_NUM_DRONES=5 \
+DYNAMIC_OBS_SCENE_START_Z_THRESHOLD=-2.0 \
+DYNAMIC_OBS_SCENE_START_STABLE_SEC=2.0 \
+DYNAMIC_OBS_VISUALIZE_GZ=1 \
+ORCA_USE_WORLD_STATE=1 \
+./start1.sh 5
+```
+
+等待期间 `dynamic_obstacle_source.py` 会持续发布 `scene_time=0` 的初始障碍；当日志出现下面这行后，动态障碍才开始按场景时间运动：
+
+```text
+scene clock started after takeoff
 ```
 
 运行后重点看两个日志：
@@ -597,7 +623,10 @@ python3 ros_analysis/analyze_ros_run.py \
   --run-dir ~/ws_xtd2/logs/ros_run_easy_flight_reaction \
   --obstacle-center-x 12.0 \
   --obstacle-center-y 10.4 \
-  --influence-radius 2.0
+  --influence-radius 2.0 \
+  --drone-radius 0.35 \
+  --safe-margin 0.6 \
+  --near-miss-margin 0.5
 ```
 
 它会输出：
@@ -608,11 +637,61 @@ python3 ros_analysis/analyze_ros_run.py \
 - `distance_by_drone`：每架无人机到动态障碍的最近距离。
 - `avoid_by_drone`：每架无人机的避障输出行数、非零行数和最大避障速度。
 - `verdict`：这一轮是否满足“障碍进入影响范围，并且 ORCA 输出过避障速度”。
+- `algorithm_metrics`：规范化算法级评价指标。
 
 同时会在运行目录下保存：
 
 ```text
 analysis_summary.json
+algorithm_metrics.csv
+```
+
+### 算法级评价指标
+
+`algorithm_metrics` 用于评价某一次真实仿真运行中的算法表现，不用于定义场景难度。当前包括：
+
+```text
+path_length_xy / path_length_3d
+  每架无人机真实轨迹长度，以及全队平均/总路径长度。
+
+mission_time_sec
+  如果传入目标点，则为所有无人机到达目标的最晚时间；
+  如果没有传入目标点，则使用记录时长。
+
+completion_rate
+  传入目标点后，成功进入目标半径的无人机比例。
+
+collision_events_total
+  安全距离被侵入的碰撞事件数量。
+
+global_min_safety_clearance
+  全运行过程中最小安全净距。
+  clearance = distance_3d - drone_radius - obstacle_radius - safe_margin
+
+near_miss_samples_total
+  安全净距小于 near_miss_margin 的采样次数。
+
+avoidance_success_rate
+  对进入障碍影响区的无人机，若有非零避障输出且无碰撞，则计为避障成功。
+
+control_accel_rms_mean / control_jerk_rms_mean
+  基于 avoid_cmd 变化计算的控制平滑度指标，数值越小越平滑。
+
+real_time_factor
+  仿真实时率，等于 scene_time 增量 / wall-clock 时间增量。
+```
+
+如果要统计任务完成率和任务时间，可以额外传入目标点：
+
+```bash
+python3 ros_analysis/analyze_ros_run.py \
+  --run-dir ~/ws_xtd2/logs/ros_run_easy_flight_reaction \
+  --target-x 30.0 \
+  --target-y 26.0 \
+  --target-z -3.0 \
+  --target-radius 1.5 \
+  --drone-radius 0.35 \
+  --safe-margin 0.6
 ```
 
 对于 `easy_flight_reaction.yaml`，如果看到类似结果：
@@ -638,16 +717,52 @@ verdict=PASS: obstacle reached route and ORCA produced avoid output
 ```bash
 python3 ros_analysis/plot_ros_run.py \
   --run-dir ~/ws_xtd2/logs/ros_run_easy_flight_reaction_stronger \
+  --output-dir results/algorithm_eval_v1/easy_crossing_orca/plots \
   --influence-radius 3.5
 ```
 
-默认输出位置：
+推荐输出位置：
 
 ```text
-~/ws_xtd2/logs/ros_run_easy_flight_reaction_stronger/plots/overview.png
-~/ws_xtd2/logs/ros_run_easy_flight_reaction_stronger/plots/zoom_obstacle.png
-~/ws_xtd2/logs/ros_run_easy_flight_reaction_stronger/plots/obstacle_avoid.png
+results/algorithm_eval_v1/easy_crossing_orca/plots/overview.png
+results/algorithm_eval_v1/easy_crossing_orca/plots/zoom_obstacle.png
+results/algorithm_eval_v1/easy_crossing_orca/plots/obstacle_avoid.png
 ```
+
+也可以用一键脚本把算法指标和三张真实轨迹图都放进 `results/`：
+
+```bash
+TARGET_X=30.0 TARGET_Y=26.0 TARGET_Z=-3.0 \
+./run_algorithm_eval_once.sh \
+  ~/ws_xtd2/logs/algorithm_eval_v1/easy_crossing_orca \
+  results/algorithm_eval_v1/easy_crossing_orca
+```
+
+调试阶段建议使用覆盖式输出，避免旧结果混在一起：
+
+```bash
+TARGET_X=32.0 TARGET_Y=24.0 TARGET_Z=-3.0 \
+EVAL_OUTPUT_MODE=debug OVERWRITE=1 \
+./run_algorithm_eval_once.sh \
+  ~/ws_xtd2/logs/algorithm_eval_tmp/medium_current
+```
+
+这会输出到：
+
+```text
+results/algorithm_eval_tmp/medium_current/
+```
+
+`algorithm_eval_tmp/` 只用于反复调试，可以覆盖。等参数、起飞同步和场景确认稳定后，再改用正式版本目录，例如：
+
+```bash
+TARGET_X=32.0 TARGET_Y=24.0 TARGET_Z=-3.0 \
+./run_algorithm_eval_once.sh \
+  ~/ws_xtd2/logs/algorithm_eval_tmp/medium_current \
+  results/algorithm_eval_v1/medium_multi_crossing_orca_takeoff_sync_v1
+```
+
+论文实验建议保留版本化结果，不要覆盖 `algorithm_eval_v1/`。如果之后改了 ORCA 参数、场景 seed、任务目标点或起飞同步逻辑，就新建 `..._v2`、`..._v3`，这样论文里可以追溯每组结果来自哪一次配置。
 
 图中包含：
 
@@ -740,13 +855,29 @@ python3 difficulty_analysis/formation_survivability_experiment.py \
   --output-dir /tmp/formation_survivability_suite
 ```
 
+固定复现 Benchmark V1 数据集：
+
+```bash
+./run_benchmark_v1.sh
+```
+
+默认输出到：
+
+```text
+results/formation_survivability_v1/
+```
+
+该目录包含 `suite_survivability.csv/json`、每个场景的 `obstacle_trajectory.csv`、`survival_samples.csv`、`scene_config_for_plot.yaml`，以及 `plots/` 下的柱状图和场景风险图。
+
 当前实验结果示例：
 
 ```text
-easy_crossing: declared=easy survivability=easy D=0.17/10 S=29.49s failed=0.09
-medium_multi_crossing: declared=medium survivability=medium D=2.24/10 S=31.05s failed=0.34
-hard_dense_crossing: declared=hard survivability=hard D=4.10/10 S=29.49s failed=0.54
+easy_crossing: declared=easy survivability=easy D=0.76/10 S=83.16s failed=0.11
+medium_multi_crossing: declared=medium survivability=medium D=2.87/10 S=64.20s failed=0.34
+hard_dense_crossing: declared=hard survivability=hard D=4.69/10 S=47.82s failed=0.54
 ```
+
+当前 `benchmark_v1` 的 easy/medium/hard 三个场景均使用 `ping_pong_line` 周期穿越障碍；`results/formation_survivability_v1/` 已覆盖为这一版难度分级结果。真实算法评估结果仍需要重新跑 ROS/Gazebo 后才能覆盖。
 
 输出文件：
 

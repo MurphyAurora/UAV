@@ -76,6 +76,10 @@ DYNAMIC_OBS_ACTIVE_CENTER_X=${DYNAMIC_OBS_ACTIVE_CENTER_X:-5.5}
 DYNAMIC_OBS_ACTIVE_CENTER_Y=${DYNAMIC_OBS_ACTIVE_CENTER_Y:-0.0}
 DYNAMIC_OBS_SWITCH_AFTER_SEC=${DYNAMIC_OBS_SWITCH_AFTER_SEC:-$(awk "BEGIN{print int(${WARMUP_SEC}+${POST_OFFBOARD_HOLD_SEC}+10)}")}
 DYNAMIC_OBS_SWITCH_FADE_SEC=${DYNAMIC_OBS_SWITCH_FADE_SEC:-6}
+DYNAMIC_OBS_SCENE_CLOCK_MODE=${DYNAMIC_OBS_SCENE_CLOCK_MODE:-wall_time}
+DYNAMIC_OBS_SCENE_START_NUM_DRONES=${DYNAMIC_OBS_SCENE_START_NUM_DRONES:-${NUM_DRONES}}
+DYNAMIC_OBS_SCENE_START_Z_THRESHOLD=${DYNAMIC_OBS_SCENE_START_Z_THRESHOLD:-${TAKEOFF_Z}}
+DYNAMIC_OBS_SCENE_START_STABLE_SEC=${DYNAMIC_OBS_SCENE_START_STABLE_SEC:-2.0}
 DYNAMIC_OBS_WALL_X=${DYNAMIC_OBS_WALL_X:-3.0}
 DYNAMIC_OBS_WALL_Y=${DYNAMIC_OBS_WALL_Y:-1.0}
 DYNAMIC_OBS_WALL_Z=${DYNAMIC_OBS_WALL_Z:-0.9}
@@ -302,12 +306,13 @@ exec bash
 "
   # 无墙目标点验证：默认不启动动态障碍节点；如需恢复墙体验证再打开 DYNAMIC_OBS_ENABLE=1
   if [ "${DYNAMIC_OBS_ENABLE}" = "1" ]; then
+    echo "[INFO] dynamic obstacle scene clock: mode=${DYNAMIC_OBS_SCENE_CLOCK_MODE}, num_drones=${DYNAMIC_OBS_SCENE_START_NUM_DRONES}, z_threshold=${DYNAMIC_OBS_SCENE_START_Z_THRESHOLD}, stable_sec=${DYNAMIC_OBS_SCENE_START_STABLE_SEC}"
     launch_job "DynamicObstacles" "
 cd ~/ws_xtd2;
 source /opt/ros/jazzy/setup.bash;
 source install/setup.bash;
   # DYNAMIC_OBS_MODE=static_wall uses obstacles.yaml; DYNAMIC_OBS_MODE=scene uses scenes/*.yaml.
-  python3 ~/ws_xtd2/scripts/dynamic_obstacle_source.py --rate 10 --world ${DYNAMIC_OBS_WORLD} --visualize-gz ${DYNAMIC_OBS_VISUALIZE_GZ} --mode ${DYNAMIC_OBS_MODE} --scene-config ${DYNAMIC_OBS_SCENE_CONFIG} --obstacle-config ${OBSTACLE_CONFIG} --wall-x ${DYNAMIC_OBS_WALL_X} --wall-y ${DYNAMIC_OBS_WALL_Y} --wall-z ${DYNAMIC_OBS_WALL_Z} --wall-length ${DYNAMIC_OBS_WALL_LENGTH} --wall-thickness ${DYNAMIC_OBS_WALL_THICKNESS} --wall-height ${DYNAMIC_OBS_WALL_HEIGHT} --wall-segment-spacing ${DYNAMIC_OBS_WALL_SEGMENT_SPACING} --second-wall-enable ${SECOND_WALL_ENABLE} --second-wall-dx ${SECOND_WALL_DX} --second-wall-dy ${SECOND_WALL_DY} --rear-wall-length ${REAR_WALL_LENGTH} --third-wall-enable ${THIRD_WALL_ENABLE} --target-ball-enable 1 --target-ball-num-drones ${NUM_DRONES} --target-ball-leader-id ${LEADER_ID} --target-ball-target-x ${DYNAMIC_OBS_TARGET_X} --target-ball-base-y ${DYNAMIC_OBS_TARGET_Y_BASE} --target-ball-target-z ${MISSION_Z} --target-ball-y-spacing ${DYNAMIC_OBS_TARGET_Y_SPACING} 2>&1 | tee ${LOG_DIR}/dynamic_obstacles.log;
+  python3 ~/ws_xtd2/scripts/dynamic_obstacle_source.py --rate 10 --world ${DYNAMIC_OBS_WORLD} --visualize-gz ${DYNAMIC_OBS_VISUALIZE_GZ} --mode ${DYNAMIC_OBS_MODE} --scene-config ${DYNAMIC_OBS_SCENE_CONFIG} --obstacle-config ${OBSTACLE_CONFIG} --wall-x ${DYNAMIC_OBS_WALL_X} --wall-y ${DYNAMIC_OBS_WALL_Y} --wall-z ${DYNAMIC_OBS_WALL_Z} --wall-length ${DYNAMIC_OBS_WALL_LENGTH} --wall-thickness ${DYNAMIC_OBS_WALL_THICKNESS} --wall-height ${DYNAMIC_OBS_WALL_HEIGHT} --wall-segment-spacing ${DYNAMIC_OBS_WALL_SEGMENT_SPACING} --second-wall-enable ${SECOND_WALL_ENABLE} --second-wall-dx ${SECOND_WALL_DX} --second-wall-dy ${SECOND_WALL_DY} --rear-wall-length ${REAR_WALL_LENGTH} --third-wall-enable ${THIRD_WALL_ENABLE} --target-ball-enable 1 --target-ball-num-drones ${NUM_DRONES} --target-ball-leader-id ${LEADER_ID} --target-ball-target-x ${DYNAMIC_OBS_TARGET_X} --target-ball-base-y ${DYNAMIC_OBS_TARGET_Y_BASE} --target-ball-target-z ${MISSION_Z} --target-ball-y-spacing ${DYNAMIC_OBS_TARGET_Y_SPACING} --scene-clock-mode ${DYNAMIC_OBS_SCENE_CLOCK_MODE} --scene-start-num-drones ${DYNAMIC_OBS_SCENE_START_NUM_DRONES} --scene-start-z-threshold ${DYNAMIC_OBS_SCENE_START_Z_THRESHOLD} --scene-start-stable-sec ${DYNAMIC_OBS_SCENE_START_STABLE_SEC} 2>&1 | tee ${LOG_DIR}/dynamic_obstacles.log;
 exec bash
 "
   fi

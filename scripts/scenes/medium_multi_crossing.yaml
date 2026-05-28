@@ -1,11 +1,11 @@
 # Layer 1: 场景配置层。
-# medium benchmark 场景：多个穿越障碍和巡逻障碍，用于中等难度算法测试。
+# medium benchmark 场景：周期穿越障碍和巡逻障碍，用于中等难度算法测试。
 scene:
   name: medium_multi_crossing
   version: 1
   seed: 202
   level: medium
-  duration: 40.0
+  duration: 90.0
   dt: 0.5
 
 world:
@@ -42,7 +42,7 @@ dynamic_obstacles:
     type: sphere
     radius: 0.50
     trajectory:
-      type: line
+      type: ping_pong_line
       start: [11.0, -12.0, -3.0]
       end: [11.0, 16.0, -3.0]
       speed: 0.9
@@ -52,7 +52,7 @@ dynamic_obstacles:
     type: sphere
     radius: 0.50
     trajectory:
-      type: line
+      type: ping_pong_line
       start: [17.0, 18.0, -3.0]
       end: [17.0, -10.0, -3.0]
       speed: 1.0
@@ -75,4 +75,4 @@ difficulty:
   obstacle_count: 3
   max_obstacle_speed: 1.35
   corridor_width_hint: 14.0
-  notes: Multiple crossings plus one patrol obstacle for moderate replanning pressure.
+  notes: Periodic crossing obstacles plus one patrol obstacle for moderate replanning pressure.

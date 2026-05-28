@@ -1,0 +1,523 @@
+{
+  "algorithm_metrics": {
+    "avoidance_success": {
+      "avoidance_success_rate": 1.0,
+      "by_drone": {
+        "1": {
+          "avoidance_success": true,
+          "collision_free": true,
+          "has_nonzero_avoid_cmd": true,
+          "required_avoidance": true
+        },
+        "2": {
+          "avoidance_success": true,
+          "collision_free": true,
+          "has_nonzero_avoid_cmd": true,
+          "required_avoidance": true
+        },
+        "3": {
+          "avoidance_success": true,
+          "collision_free": true,
+          "has_nonzero_avoid_cmd": true,
+          "required_avoidance": true
+        },
+        "4": {
+          "avoidance_success": true,
+          "collision_free": true,
+          "has_nonzero_avoid_cmd": true,
+          "required_avoidance": true
+        },
+        "5": {
+          "avoidance_success": true,
+          "collision_free": true,
+          "has_nonzero_avoid_cmd": true,
+          "required_avoidance": true
+        }
+      },
+      "definition": "For drones entering the obstacle influence zone, success requires nonzero avoid command and zero collision events.",
+      "required_drone_count": 5,
+      "successful_drone_count": 5
+    },
+    "control_smoothness": {
+      "1": {
+        "cmd_accel_max": 0.7325853198992045,
+        "cmd_accel_rms": 0.05000948106130138,
+        "cmd_delta_max": 0.037556686022597895,
+        "cmd_delta_rms": 0.002502988667565632,
+        "cmd_jerk_max": 15.377805936523215,
+        "cmd_jerk_rms": 0.7164490958884366,
+        "max_speed_xy": 0.219966,
+        "mean_speed_xy": 0.03413243277909739,
+        "nonzero_ratio": 0.17387173396674585,
+        "nonzero_rows": 366,
+        "samples": 2105
+      },
+      "2": {
+        "cmd_accel_max": 0.6229911683528423,
+        "cmd_accel_rms": 0.03250606974788489,
+        "cmd_delta_max": 0.032102662849053505,
+        "cmd_delta_rms": 0.001628265280642097,
+        "cmd_jerk_max": 12.582567244703142,
+        "cmd_jerk_rms": 0.4732881552630676,
+        "max_speed_xy": 0.219993,
+        "mean_speed_xy": 0.025378336342042757,
+        "nonzero_ratio": 0.13444180522565322,
+        "nonzero_rows": 283,
+        "samples": 2105
+      },
+      "3": {
+        "cmd_accel_max": 0.7034013171299214,
+        "cmd_accel_rms": 0.02750163640039217,
+        "cmd_delta_max": 0.0347874996227093,
+        "cmd_delta_rms": 0.001368889496251165,
+        "cmd_jerk_max": 14.222735704095268,
+        "cmd_jerk_rms": 0.34524666751618227,
+        "max_speed_xy": 0.219998,
+        "mean_speed_xy": 0.027964449406175772,
+        "nonzero_ratio": 0.130166270783848,
+        "nonzero_rows": 274,
+        "samples": 2105
+      },
+      "4": {
+        "cmd_accel_max": 0.6542165406387729,
+        "cmd_accel_rms": 0.02993267871030478,
+        "cmd_delta_max": 0.03368237892429809,
+        "cmd_delta_rms": 0.0014964073489185151,
+        "cmd_jerk_max": 12.706919633179748,
+        "cmd_jerk_rms": 0.31074899315134236,
+        "max_speed_xy": 0.219999,
+        "mean_speed_xy": 0.02257666413301663,
+        "nonzero_ratio": 0.10498812351543943,
+        "nonzero_rows": 221,
+        "samples": 2105
+      },
+      "5": {
+        "cmd_accel_max": 0.5756289488651561,
+        "cmd_accel_rms": 0.02352380716807437,
+        "cmd_delta_max": 0.030336219161260027,
+        "cmd_delta_rms": 0.0011790384241038576,
+        "cmd_jerk_max": 10.92254394030564,
+        "cmd_jerk_rms": 0.2598110833045939,
+        "max_speed_xy": 0.219999,
+        "mean_speed_xy": 0.014863608076009501,
+        "nonzero_ratio": 0.07173396674584323,
+        "nonzero_rows": 151,
+        "samples": 2105
+      }
+    },
+    "definitions": {
+      "avoidance_success_rate": "Among drones entering influence zone, fraction with nonzero avoid command and no collision.",
+      "collision": "3D distance <= drone_radius + obstacle_radius + safe_margin.",
+      "control_smoothness": "RMS/max changes of avoid_cmd velocity, acceleration-like delta/dt, and jerk-like difference.",
+      "min_safety_distance": "Minimum clearance after subtracting drone radius, obstacle radius, and safe margin.",
+      "path_length": "Sum of consecutive drone world-position distances.",
+      "real_time_factor": "scene_time duration / wall-clock recording duration from obstacle messages.",
+      "task_time": "If target is configured, max completion time among drones; otherwise recording duration."
+    },
+    "path": {
+      "1": {
+        "avg_speed_xy": 0.37636814749257647,
+        "duration_sec": 124.18901300430298,
+        "end_time": 1779942781.27523,
+        "path_length_3d": 46.898633948925365,
+        "path_length_xy": 46.740788763361,
+        "samples": 1870,
+        "start_time": 1779942657.086217,
+        "state_speed_xy_avg": 0.5036810148371098,
+        "state_speed_xy_max": 0.8949909065068763
+      },
+      "2": {
+        "avg_speed_xy": 0.37668386418092775,
+        "duration_sec": 124.18901300430298,
+        "end_time": 1779942781.27523,
+        "path_length_3d": 46.92296020844476,
+        "path_length_xy": 46.77999730727633,
+        "samples": 1870,
+        "start_time": 1779942657.086217,
+        "state_speed_xy_avg": 0.5031646837412201,
+        "state_speed_xy_max": 0.8855756990619154
+      },
+      "3": {
+        "avg_speed_xy": 0.36636281516000685,
+        "duration_sec": 124.18901300430298,
+        "end_time": 1779942781.27523,
+        "path_length_3d": 45.79139836548403,
+        "path_length_xy": 45.49823641619914,
+        "samples": 1870,
+        "start_time": 1779942657.086217,
+        "state_speed_xy_avg": 0.4916708378181337,
+        "state_speed_xy_max": 0.8846618038843997
+      },
+      "4": {
+        "avg_speed_xy": 0.3792763018094328,
+        "duration_sec": 124.18901300430298,
+        "end_time": 1779942781.27523,
+        "path_length_3d": 48.88409786435274,
+        "path_length_xy": 47.10194957763559,
+        "samples": 1870,
+        "start_time": 1779942657.086217,
+        "state_speed_xy_avg": 0.5076877978625118,
+        "state_speed_xy_max": 0.884984139940372
+      },
+      "5": {
+        "avg_speed_xy": 0.3776139656830468,
+        "duration_sec": 124.18901300430298,
+        "end_time": 1779942781.27523,
+        "path_length_3d": 48.71409885018793,
+        "path_length_xy": 46.89550569481832,
+        "samples": 1870,
+        "start_time": 1779942657.086217,
+        "state_speed_xy_avg": 0.506753062110269,
+        "state_speed_xy_max": 0.8862699987729473
+      }
+    },
+    "real_time_factor": {
+      "available": true,
+      "real_time_factor": 1.0052329243890823,
+      "scene_duration_sec": 124.474913,
+      "wall_duration_sec": 123.82693600654602
+    },
+    "safety": {
+      "by_drone": {
+        "1": {
+          "closest": {
+            "distance_3d": 2.5094332500572714,
+            "distance_xy": 2.508899594243062,
+            "drone_world_x": 9.542688,
+            "drone_world_y": 11.493843,
+            "drone_z": -2.94825,
+            "obstacle_id": "slow_crossing_ball",
+            "obstacle_radius": 0.45,
+            "obstacle_x": 12.0,
+            "obstacle_y": 12.0,
+            "obstacle_z": -3.0,
+            "safety_clearance": 1.1094332500572714,
+            "scene_time": 179.520202,
+            "time": 1779942766.94694
+          },
+          "collision_events": 0,
+          "collision_rate_samples": 0.0,
+          "collision_samples": 0,
+          "influence_samples": 231,
+          "min_distance_3d": 2.5094332500572714,
+          "min_distance_xy": 2.508899594243062,
+          "min_safety_clearance": 1.1094332500572714,
+          "near_miss_rate_samples": 0.0,
+          "near_miss_samples": 0,
+          "samples": 1870
+        },
+        "2": {
+          "closest": {
+            "distance_3d": 2.1726689980079796,
+            "distance_xy": 2.172662336973925,
+            "drone_world_x": 9.860421,
+            "drone_world_y": 11.622292,
+            "drone_z": -3.00538,
+            "obstacle_id": "slow_crossing_ball",
+            "obstacle_radius": 0.45,
+            "obstacle_x": 12.0,
+            "obstacle_y": 12.0,
+            "obstacle_z": -3.0,
+            "safety_clearance": 0.7726689980079797,
+            "scene_time": 182.361644,
+            "time": 1779942769.744177
+          },
+          "collision_events": 0,
+          "collision_rate_samples": 0.0,
+          "collision_samples": 0,
+          "influence_samples": 278,
+          "min_distance_3d": 2.1726689980079796,
+          "min_distance_xy": 2.172662336973925,
+          "min_safety_clearance": 0.7726689980079797,
+          "near_miss_rate_samples": 0.0,
+          "near_miss_samples": 0,
+          "samples": 1870
+        },
+        "3": {
+          "closest": {
+            "distance_3d": 2.2417098709755017,
+            "distance_xy": 2.238349469235088,
+            "drone_world_x": 9.767944,
+            "drone_world_y": 11.832267,
+            "drone_z": -3.122698,
+            "obstacle_id": "slow_crossing_ball",
+            "obstacle_radius": 0.45,
+            "obstacle_x": 12.0,
+            "obstacle_y": 12.0,
+            "obstacle_z": -3.0,
+            "safety_clearance": 0.8417098709755018,
+            "scene_time": 190.759285,
+            "time": 1779942778.008734
+          },
+          "collision_events": 0,
+          "collision_rate_samples": 0.0,
+          "collision_samples": 0,
+          "influence_samples": 239,
+          "min_distance_3d": 2.2417098709755017,
+          "min_distance_xy": 2.2383449171137584,
+          "min_safety_clearance": 0.8417098709755018,
+          "near_miss_rate_samples": 0.0,
+          "near_miss_samples": 0,
+          "samples": 1870
+        },
+        "4": {
+          "closest": {
+            "distance_3d": 1.461425077537676,
+            "distance_xy": 1.4613190226709576,
+            "drone_world_x": 10.552696,
+            "drone_world_y": 11.798098,
+            "drone_z": -3.017606,
+            "obstacle_id": "slow_crossing_ball",
+            "obstacle_radius": 0.45,
+            "obstacle_x": 12.0,
+            "obstacle_y": 12.0,
+            "obstacle_z": -3.0,
+            "safety_clearance": 0.06142507753767612,
+            "scene_time": 192.76027,
+            "time": 1779942780.343899
+          },
+          "collision_events": 0,
+          "collision_rate_samples": 0.0,
+          "collision_samples": 0,
+          "influence_samples": 201,
+          "min_distance_3d": 1.461425077537676,
+          "min_distance_xy": 1.4613190226709576,
+          "min_safety_clearance": 0.06142507753767612,
+          "near_miss_rate_samples": 0.05026737967914439,
+          "near_miss_samples": 94,
+          "samples": 1870
+        },
+        "5": {
+          "closest": {
+            "distance_3d": 2.0307372966206136,
+            "distance_xy": 2.030457967583914,
+            "drone_world_x": 10.567235,
+            "drone_world_y": 13.43873,
+            "drone_z": -3.033681,
+            "obstacle_id": "slow_crossing_ball",
+            "obstacle_radius": 0.45,
+            "obstacle_x": 12.0,
+            "obstacle_y": 12.0,
+            "obstacle_z": -3.0,
+            "safety_clearance": 0.6307372966206137,
+            "scene_time": 193.521502,
+            "time": 1779942781.20906
+          },
+          "collision_events": 0,
+          "collision_rate_samples": 0.0,
+          "collision_samples": 0,
+          "influence_samples": 159,
+          "min_distance_3d": 2.0307372966206136,
+          "min_distance_xy": 2.030457967583914,
+          "min_safety_clearance": 0.6307372966206137,
+          "near_miss_rate_samples": 0.0,
+          "near_miss_samples": 0,
+          "samples": 1870
+        }
+      },
+      "collision_events_total": 0,
+      "collision_samples_total": 0,
+      "drone_radius": 0.35,
+      "global_min_safety_clearance": 0.06142507753767612,
+      "influence_radius": 3.5,
+      "influence_samples_total": 1108,
+      "near_miss_margin": 0.5,
+      "near_miss_samples_total": 94,
+      "safe_margin": 0.6
+    },
+    "task": {
+      "completion_by_drone": {
+        "1": {
+          "completed": false,
+          "completion_time_sec": null,
+          "min_target_distance": 22.604960593931082
+        },
+        "2": {
+          "completed": false,
+          "completion_time_sec": null,
+          "min_target_distance": 22.02481873858244
+        },
+        "3": {
+          "completed": false,
+          "completion_time_sec": null,
+          "min_target_distance": 21.59737626413146
+        },
+        "4": {
+          "completed": false,
+          "completion_time_sec": null,
+          "min_target_distance": 21.36487584361049
+        },
+        "5": {
+          "completed": false,
+          "completion_time_sec": null,
+          "min_target_distance": 21.231372471273872
+        }
+      },
+      "completion_rate": 0.0,
+      "mission_time_sec": null,
+      "recording_duration_sec": 124.18901300430298,
+      "target": {
+        "radius": 1.5,
+        "x": 30.0,
+        "y": 26.0,
+        "z": -3.0
+      },
+      "target_configured": true
+    }
+  },
+  "avoid_by_drone": {
+    "1": {
+      "first_nonzero_time": 1779942740.489891,
+      "max_speed_xy": 0.219966,
+      "nonzero_rows": 366,
+      "rows": 2105
+    },
+    "2": {
+      "first_nonzero_time": 1779942765.189832,
+      "max_speed_xy": 0.219993,
+      "nonzero_rows": 283,
+      "rows": 2105
+    },
+    "3": {
+      "first_nonzero_time": 1779942767.640561,
+      "max_speed_xy": 0.219998,
+      "nonzero_rows": 274,
+      "rows": 2105
+    },
+    "4": {
+      "first_nonzero_time": 1779942770.293591,
+      "max_speed_xy": 0.219999,
+      "nonzero_rows": 221,
+      "rows": 2105
+    },
+    "5": {
+      "first_nonzero_time": 1779942773.794417,
+      "max_speed_xy": 0.219999,
+      "nonzero_rows": 151,
+      "rows": 2105
+    }
+  },
+  "checks": {
+    "any_drone_entered_obstacle_influence": true,
+    "any_nonzero_avoid_cmd": true,
+    "has_named_dynamic_obstacle": true,
+    "influence_radius": 3.5,
+    "nonzero_threshold": 0.01
+  },
+  "distance_by_drone": {
+    "1": {
+      "closest": {
+        "distance_3d": 2.5094332500572714,
+        "distance_xy": 2.508899594243062,
+        "drone_world_x": 9.542688,
+        "drone_world_y": 11.493843,
+        "drone_z": -2.94825,
+        "obstacle_x": 12.0,
+        "obstacle_y": 12.0,
+        "obstacle_z": -3.0,
+        "scene_time": 179.520202,
+        "time": 1779942766.94694
+      },
+      "entered_influence": true,
+      "influence_threshold": 3.95,
+      "min_distance_xy": 2.508899594243062
+    },
+    "2": {
+      "closest": {
+        "distance_3d": 2.1726689980079796,
+        "distance_xy": 2.172662336973925,
+        "drone_world_x": 9.860421,
+        "drone_world_y": 11.622292,
+        "drone_z": -3.00538,
+        "obstacle_x": 12.0,
+        "obstacle_y": 12.0,
+        "obstacle_z": -3.0,
+        "scene_time": 182.361644,
+        "time": 1779942769.744177
+      },
+      "entered_influence": true,
+      "influence_threshold": 3.95,
+      "min_distance_xy": 2.172662336973925
+    },
+    "3": {
+      "closest": {
+        "distance_3d": 2.2417138696285477,
+        "distance_xy": 2.2383449171137584,
+        "drone_world_x": 9.769975,
+        "drone_world_y": 11.807188,
+        "drone_z": -3.122854,
+        "obstacle_x": 12.0,
+        "obstacle_y": 12.0,
+        "obstacle_z": -3.0,
+        "scene_time": 190.759285,
+        "time": 1779942778.075399
+      },
+      "entered_influence": true,
+      "influence_threshold": 3.95,
+      "min_distance_xy": 2.2383449171137584
+    },
+    "4": {
+      "closest": {
+        "distance_3d": 1.461425077537676,
+        "distance_xy": 1.4613190226709576,
+        "drone_world_x": 10.552696,
+        "drone_world_y": 11.798098,
+        "drone_z": -3.017606,
+        "obstacle_x": 12.0,
+        "obstacle_y": 12.0,
+        "obstacle_z": -3.0,
+        "scene_time": 192.76027,
+        "time": 1779942780.343899
+      },
+      "entered_influence": true,
+      "influence_threshold": 3.95,
+      "min_distance_xy": 1.4613190226709576
+    },
+    "5": {
+      "closest": {
+        "distance_3d": 2.0307372966206136,
+        "distance_xy": 2.030457967583914,
+        "drone_world_x": 10.567235,
+        "drone_world_y": 13.43873,
+        "drone_z": -3.033681,
+        "obstacle_x": 12.0,
+        "obstacle_y": 12.0,
+        "obstacle_z": -3.0,
+        "scene_time": 193.521502,
+        "time": 1779942781.20906
+      },
+      "entered_influence": true,
+      "influence_threshold": 3.95,
+      "min_distance_xy": 2.030457967583914
+    }
+  },
+  "input_files": {
+    "avoid_cmds_csv": "/home/lililab/ws_xtd2/logs/algorithm_eval_v1/easy_crossing_orca/avoid_cmds.csv",
+    "drones_csv": "/home/lililab/ws_xtd2/logs/algorithm_eval_v1/easy_crossing_orca/drones.csv",
+    "obstacles_csv": "/home/lililab/ws_xtd2/logs/algorithm_eval_v1/easy_crossing_orca/obstacles_ros.csv"
+  },
+  "obstacle_summary": {
+    "all_obstacle_rows": 15860,
+    "first_scene_time": 69.046589,
+    "last_scene_time": 193.521502,
+    "name": "slow_crossing_ball",
+    "named_dynamic_rows": 305,
+    "speed_avg": 0.0,
+    "speed_max": 0.0,
+    "speed_min": 0.0,
+    "x_range": [
+      12.0,
+      12.0
+    ],
+    "y_range": [
+      12.0,
+      12.0
+    ]
+  },
+  "row_counts": {
+    "avoid_cmds": 10525,
+    "drones": 9350,
+    "obstacles": 15860
+  },
+  "run_dir": "/home/lililab/ws_xtd2/logs/algorithm_eval_v1/easy_crossing_orca"
+}
