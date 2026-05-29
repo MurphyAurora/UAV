@@ -83,11 +83,24 @@ fi
 
 "${ANALYZE_CMD[@]}"
 
-python3 ros_analysis/plot_ros_run.py \
-  --run-dir "${RUN_DIR}" \
-  --output-dir "${RESULT_DIR}/plots" \
-  --influence-radius "${INFLUENCE_RADIUS}" \
+PLOT_CMD=(
+  python3 ros_analysis/plot_ros_run.py
+  --run-dir "${RUN_DIR}"
+  --output-dir "${RESULT_DIR}/plots"
+  --influence-radius "${INFLUENCE_RADIUS}"
   --plot-set standard
+)
+
+if [[ -n "${TARGET_X}" && -n "${TARGET_Y}" && -n "${TARGET_Z}" ]]; then
+  PLOT_CMD+=(
+    --target-x "${TARGET_X}"
+    --target-y "${TARGET_Y}"
+    --target-z "${TARGET_Z}"
+    --target-radius "${TARGET_RADIUS}"
+  )
+fi
+
+"${PLOT_CMD[@]}"
 
 echo "[Algorithm Eval] result_dir=${RESULT_DIR}"
 echo "[Algorithm Eval] metrics=${RESULT_DIR}/algorithm_metrics.csv"

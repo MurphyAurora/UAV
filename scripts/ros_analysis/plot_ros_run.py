@@ -339,6 +339,8 @@ def plot_run(
     dpi=180,
     scene_time_min=None,
     scene_time_max=None,
+    target=None,
+    target_radius=1.5,
 ):
     run_dir, drone_rows, obstacle_rows, avoid_rows = _load_run(run_dir)
     window_start_t, window_end_t, obstacle_rows = _window_by_obstacle_scene_time(
@@ -368,6 +370,23 @@ def plot_run(
     ax.grid(True, linewidth=0.5, alpha=0.35)
     ax.set_aspect('equal', adjustable='box')
 
+    show_target = target is not None and view in ('overview', 'paper')
+    if show_target:
+        tx, ty, _ = target
+        ax.scatter([tx], [ty], marker='*', s=150, color='#d62728', edgecolor='white', zorder=10, label='target')
+        ax.text(tx, ty + 0.45, 'target', fontsize=8, color='#d62728', ha='center', zorder=10, clip_on=True)
+        if target_radius and target_radius > 0:
+            target_circle = plt.Circle(
+                (tx, ty),
+                float(target_radius),
+                facecolor='none',
+                edgecolor='#d62728',
+                linestyle=':',
+                linewidth=1.0,
+                alpha=0.45,
+            )
+            ax.add_patch(target_circle)
+
     obstacle_color_by_name = {}
     if obstacles:
         for obs_idx, (obs_name, obs_rows) in enumerate(_obstacles_by_name(obstacles).items()):
@@ -380,7 +399,7 @@ def plot_run(
             if view != 'paper':
                 ax.scatter([obs_x[0]], [obs_y[0]], marker='o', s=54, color=color, edgecolor='white', zorder=7)
                 ax.scatter([obs_x[-1]], [obs_y[-1]], marker='x', s=64, color=color, zorder=7)
-                ax.text(obs_x[0], obs_y[0] + 0.45, obs_name, fontsize=8, color=color)
+                ax.text(obs_x[0], obs_y[0] + 0.45, obs_name, fontsize=8, color=color, clip_on=True)
 
     for idx, drone_id in enumerate(sorted(drones_by_id)):
         rows = drones_by_id[drone_id]
@@ -389,9 +408,17 @@ def plot_run(
         ys = [row['y'] for row in rows]
         path_width = 2.0 if view == 'paper' else 1.7
         ax.plot(xs, ys, linewidth=path_width, color=color, alpha=0.88, label=f'x500_{drone_id}')
+        show_start_end = xs and ys and view in ('overview', 'paper')
         if xs and ys and view != 'paper':
             ax.scatter([xs[0]], [ys[0]], marker='o', s=28, color=color, edgecolor='white', zorder=5)
             ax.scatter([xs[-1]], [ys[-1]], marker='s', s=30, color=color, edgecolor='white', zorder=5)
+        elif show_start_end:
+            ax.scatter([xs[0]], [ys[0]], marker='o', s=30, color=color, edgecolor='white', zorder=5)
+            ax.scatter([xs[-1]], [ys[-1]], marker='s', s=34, color=color, edgecolor='white', zorder=5)
+
+        if show_start_end:
+            ax.text(xs[0], ys[0] - 0.35, f'S{drone_id}', fontsize=7, color=color, ha='center', va='top', clip_on=True)
+            ax.text(xs[-1], ys[-1] + 0.35, f'E{drone_id}', fontsize=7, color=color, ha='center', va='bottom', clip_on=True)
 
         avoid_events = avoid_by_id.get(drone_id, [])
         show_all_orca = view == 'overview'
@@ -467,6 +494,7 @@ def plot_run(
                 fontsize=7,
                 color=color,
                 ha='center',
+                clip_on=True,
             )
         threshold = influence_radius + obs.get('radius', 0.0)
         circle = plt.Circle(
@@ -482,12 +510,24 @@ def plot_run(
 
     if view == 'overview':
         _set_limits(ax, drones_by_id, obstacles)
+        if show_target:
+            x0, x1 = ax.get_xlim()
+            y0, y1 = ax.get_ylim()
+            tx, ty, _ = target
+            ax.set_xlim(min(x0, tx - 2.0), max(x1, tx + 2.0))
+            ax.set_ylim(min(y0, ty - 2.0), max(y1, ty + 2.0))
     elif view == 'paper':
-        _set_zoom_limits(ax, obstacles, closest_by_obstacle)
+        _set_limits(ax, drones_by_id, obstacles)
+        if show_target:
+            x0, x1 = ax.get_xlim()
+            y0, y1 = ax.get_ylim()
+            tx, ty, _ = target
+            ax.set_xlim(min(x0, tx - 2.0), max(x1, tx + 2.0))
+            ax.set_ylim(min(y0, ty - 2.0), max(y1, ty + 2.0))
     else:
         _set_zoom_limits(ax, obstacles, closest)
 
-    _place_legend(ax, outside=(view != 'overview'))
+    _place_legend(ax, outside=False)
 
     footer = (
         f'run={run_dir} | nonzero_threshold={nonzero_threshold:.3f} | '
@@ -499,7 +539,7 @@ def plot_run(
         footer += f' | scene_time_window={start_label}..{end_label}s'
     if view != 'paper':
         fig.text(0.02, 0.01, footer, fontsize=7, color='#444444')
-    right = 0.78 if view != 'overview' else 1.0
+    right = 1.0
     bottom = 0.0 if view == 'paper' else 0.025
     fig.tight_layout(rect=(0, bottom, right, 1))
 
@@ -565,7 +605,15 @@ def main():
     parser.add_argument('--dpi', type=int, default=180)
     parser.add_argument('--scene-time-min', type=float, default=None)
     parser.add_argument('--scene-time-max', type=float, default=None)
+    parser.add_argument('--target-x', type=float, default=None)
+    parser.add_argument('--target-y', type=float, default=None)
+    parser.add_argument('--target-z', type=float, default=None)
+    parser.add_argument('--target-radius', type=float, default=1.5)
     args = parser.parse_args()
+
+    target = None
+    if args.target_x is not None and args.target_y is not None and args.target_z is not None:
+        target = (args.target_x, args.target_y, args.target_z)
 
     if args.output or args.plot_set == 'single':
         output = args.output or default_output(args.run_dir)
@@ -588,6 +636,8 @@ def main():
             dpi=args.dpi,
             scene_time_min=args.scene_time_min,
             scene_time_max=args.scene_time_max,
+            target=target,
+            target_radius=args.target_radius,
         )
         print(f'plot={path}')
         last_counts = (drone_count, obstacle_count, avoid_count, obstacle_avoid_count)

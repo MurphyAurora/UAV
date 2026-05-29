@@ -1246,7 +1246,8 @@ def main():
     config_obstacles = []
     config_walls = []
     config_target = None
-    if obstacle_config_path:
+    use_legacy_obstacle_config = os.environ.get('DYNAMIC_OBS_MODE', '').strip().lower() != 'scene'
+    if obstacle_config_path and use_legacy_obstacle_config:
         obstacle_config = load_obstacle_config(obstacle_config_path)
         config_obstacles = obstacles_from_config(obstacle_config)
         config_walls = normalized_walls(obstacle_config)

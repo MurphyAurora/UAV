@@ -40,69 +40,69 @@
     },
     "control_smoothness": {
       "1": {
-        "cmd_accel_max": 2.1639535981202895,
-        "cmd_accel_rms": 0.1371882461747427,
-        "cmd_delta_max": 0.10815888221500813,
-        "cmd_delta_rms": 0.006874074876893451,
-        "cmd_jerk_max": 24.53529215707452,
-        "cmd_jerk_rms": 1.7137816830469037,
-        "max_speed_xy": 0.21998,
-        "mean_speed_xy": 0.052177577,
-        "nonzero_ratio": 0.25166666666666665,
-        "nonzero_rows": 755,
-        "samples": 3000
+        "cmd_accel_max": 2.213340847900488,
+        "cmd_accel_rms": 0.14969003515262425,
+        "cmd_delta_max": 0.11282312551068598,
+        "cmd_delta_rms": 0.0075249107160151735,
+        "cmd_jerk_max": 42.3736630996184,
+        "cmd_jerk_rms": 2.154561615400609,
+        "max_speed_xy": 0.219993,
+        "mean_speed_xy": 0.05828827643089228,
+        "nonzero_ratio": 0.2934266433391652,
+        "nonzero_rows": 1174,
+        "samples": 4001
       },
       "2": {
-        "cmd_accel_max": 2.0858620074664658,
-        "cmd_accel_rms": 0.1307515230582068,
-        "cmd_delta_max": 0.10656271579215688,
-        "cmd_delta_rms": 0.006586069908218809,
-        "cmd_jerk_max": 38.175257373435166,
-        "cmd_jerk_rms": 1.861820929921495,
-        "max_speed_xy": 0.219991,
-        "mean_speed_xy": 0.05445864833333333,
-        "nonzero_ratio": 0.2813333333333333,
-        "nonzero_rows": 844,
-        "samples": 3000
+        "cmd_accel_max": 1.4615481118073228,
+        "cmd_accel_rms": 0.14224680292141803,
+        "cmd_delta_max": 0.07345576370170008,
+        "cmd_delta_rms": 0.0071426481625164765,
+        "cmd_jerk_max": 26.513639627578733,
+        "cmd_jerk_rms": 1.9813500028261686,
+        "max_speed_xy": 0.219995,
+        "mean_speed_xy": 0.06937596250937265,
+        "nonzero_ratio": 0.47638090477380657,
+        "nonzero_rows": 1906,
+        "samples": 4001
       },
       "3": {
-        "cmd_accel_max": 1.3179745446414373,
-        "cmd_accel_rms": 0.1139666689584889,
-        "cmd_delta_max": 0.06600016055283503,
-        "cmd_delta_rms": 0.005718499756184935,
-        "cmd_jerk_max": 26.318979920241855,
-        "cmd_jerk_rms": 1.694783905385617,
+        "cmd_accel_max": 2.450826823111732,
+        "cmd_accel_rms": 0.1397927393901756,
+        "cmd_delta_max": 0.12969567080284522,
+        "cmd_delta_rms": 0.007041673520300412,
+        "cmd_jerk_max": 43.300913826501485,
+        "cmd_jerk_rms": 2.094005534089302,
         "max_speed_xy": 0.219998,
-        "mean_speed_xy": 0.05547184766666667,
-        "nonzero_ratio": 0.2906666666666667,
-        "nonzero_rows": 872,
-        "samples": 3000
+        "mean_speed_xy": 0.052466632091977,
+        "nonzero_ratio": 0.3791552111972007,
+        "nonzero_rows": 1517,
+        "samples": 4001
       },
       "4": {
-        "cmd_accel_max": 1.4419234333868554,
-        "cmd_accel_rms": 0.11383660653819706,
-        "cmd_delta_max": 0.07653878912028854,
-        "cmd_delta_rms": 0.005740162023469828,
-        "cmd_jerk_max": 23.663837138713355,
-        "cmd_jerk_rms": 1.5770440119510487,
-        "max_speed_xy": 0.219998,
-        "mean_speed_xy": 0.040301597,
-        "nonzero_ratio": 0.21,
-        "nonzero_rows": 630,
-        "samples": 3000
+        "cmd_accel_max": 2.9749974203976968,
+        "cmd_accel_rms": 0.1527249587960011,
+        "cmd_delta_max": 0.1314117305456404,
+        "cmd_delta_rms": 0.007597427823809845,
+        "cmd_jerk_max": 65.37822460335616,
+        "cmd_jerk_rms": 2.280705790359828,
+        "max_speed_xy": 0.219977,
+        "mean_speed_xy": 0.041851563109222695,
+        "nonzero_ratio": 0.2276930767308173,
+        "nonzero_rows": 911,
+        "samples": 4001
       },
       "5": {
-        "cmd_accel_max": 1.5460977382720644,
-        "cmd_accel_rms": 0.11449720275495971,
-        "cmd_delta_max": 0.0786484273523635,
-        "cmd_delta_rms": 0.005747778269616782,
-        "cmd_jerk_max": 27.790298306133433,
-        "cmd_jerk_rms": 1.544705768071302,
-        "max_speed_xy": 0.219988,
-        "mean_speed_xy": 0.03929953966666667,
-        "nonzero_ratio": 0.19466666666666665,
-        "nonzero_rows": 584,
-        "samples": 3000
+        "cmd_accel_max": 1.310755613392392,
+        "cmd_accel_rms": 0.11341008579736661,
+        "cmd_delta_max": 0.06600023073444515,
+        "cmd_delta_rms": 0.005709869915330821,
+        "cmd_jerk_max": 26.031428358977077,
+        "cmd_jerk_rms": 1.6511372757110685,
+        "max_speed_xy": 0.219993,
+        "mean_speed_xy": 0.04965259060234941,
+        "nonzero_ratio": 0.25293676580854785,
+        "nonzero_rows": 1012,
+        "samples": 4001
       }
     },
     "definitions": {
@@ -116,213 +116,213 @@
     },
     "path": {
       "1": {
-        "avg_speed_xy": 0.500211387943925,
-        "duration_sec": 149.8536398410797,
-        "end_time": 1779956048.082017,
-        "path_length_3d": 75.05114620713275,
-        "path_length_xy": 74.95849717335552,
-        "samples": 2251,
-        "start_time": 1779955898.228377,
-        "state_speed_xy_avg": 0.6522104607393527,
-        "state_speed_xy_max": 0.8869285718912205
+        "avg_speed_xy": 0.4159012870805544,
+        "duration_sec": 198.11907696723938,
+        "end_time": 1780023811.230074,
+        "path_length_3d": 82.4934195362025,
+        "path_length_xy": 82.39797910588628,
+        "samples": 2979,
+        "start_time": 1780023613.110997,
+        "state_speed_xy_avg": 0.5422636247468595,
+        "state_speed_xy_max": 0.8932767216937874
       },
       "2": {
-        "avg_speed_xy": 0.5021716972092327,
-        "duration_sec": 149.8536398410797,
-        "end_time": 1779956048.082017,
-        "path_length_3d": 75.32708822146753,
-        "path_length_xy": 75.2522566519761,
-        "samples": 2251,
-        "start_time": 1779955898.228377,
-        "state_speed_xy_avg": 0.6546352633438907,
-        "state_speed_xy_max": 0.8933735306091176
+        "avg_speed_xy": 0.41627263142581145,
+        "duration_sec": 198.11907696723938,
+        "end_time": 1780023811.230074,
+        "path_length_3d": 82.57548874625539,
+        "path_length_xy": 82.47154950480561,
+        "samples": 2979,
+        "start_time": 1780023613.110997,
+        "state_speed_xy_avg": 0.539923518707832,
+        "state_speed_xy_max": 0.8859820072806219
       },
       "3": {
-        "avg_speed_xy": 0.4875729780848823,
-        "duration_sec": 149.8536398410797,
-        "end_time": 1779956048.082017,
-        "path_length_3d": 73.14980023669236,
-        "path_length_xy": 73.0645854541746,
-        "samples": 2251,
-        "start_time": 1779955898.228377,
-        "state_speed_xy_avg": 0.6375800341174475,
-        "state_speed_xy_max": 0.8933199026580567
+        "avg_speed_xy": 0.41533901446497634,
+        "duration_sec": 198.11907696723938,
+        "end_time": 1780023811.230074,
+        "path_length_3d": 82.38098896977175,
+        "path_length_xy": 82.28658217428399,
+        "samples": 2979,
+        "start_time": 1780023613.110997,
+        "state_speed_xy_avg": 0.5423791817189136,
+        "state_speed_xy_max": 0.8873506127760323
       },
       "4": {
-        "avg_speed_xy": 0.5001090297569316,
-        "duration_sec": 149.8536398410797,
-        "end_time": 1779956048.082017,
-        "path_length_3d": 75.01377330843411,
-        "path_length_xy": 74.94315842646705,
-        "samples": 2251,
-        "start_time": 1779955898.228377,
-        "state_speed_xy_avg": 0.6507469508642538,
-        "state_speed_xy_max": 0.8885894655154314
+        "avg_speed_xy": 0.4153589000477017,
+        "duration_sec": 198.11907696723938,
+        "end_time": 1780023811.230074,
+        "path_length_3d": 82.40953706367496,
+        "path_length_xy": 82.2905218875785,
+        "samples": 2979,
+        "start_time": 1780023613.110997,
+        "state_speed_xy_avg": 0.5422542484957023,
+        "state_speed_xy_max": 0.8873166340151637
       },
       "5": {
-        "avg_speed_xy": 0.4999711672670524,
-        "duration_sec": 149.8536398410797,
-        "end_time": 1779956048.082017,
-        "path_length_3d": 74.97675893208822,
-        "path_length_xy": 74.92249923056109,
-        "samples": 2251,
-        "start_time": 1779955898.228377,
-        "state_speed_xy_avg": 0.6524186777089316,
-        "state_speed_xy_max": 0.8914619259985251
+        "avg_speed_xy": 0.41522295997689135,
+        "duration_sec": 198.11907696723938,
+        "end_time": 1780023811.230074,
+        "path_length_3d": 82.38719411925533,
+        "path_length_xy": 82.2635895662267,
+        "samples": 2979,
+        "start_time": 1780023613.110997,
+        "state_speed_xy_avg": 0.5416978927545589,
+        "state_speed_xy_max": 0.8908802386948539
       }
     },
     "real_time_factor": {
       "available": true,
-      "real_time_factor": 0.9388324959436777,
-      "scene_duration_sec": 140.32025,
-      "wall_duration_sec": 149.46249794960022
+      "real_time_factor": 0.9368072150072897,
+      "scene_duration_sec": 185.397542,
+      "wall_duration_sec": 197.90362310409546
     },
     "safety": {
       "by_drone": {
         "1": {
           "closest": {
-            "distance_3d": 0.1833408727861843,
-            "distance_xy": 0.17322017910740029,
-            "drone_world_x": 15.839935,
-            "drone_world_y": 0.683941,
-            "drone_z": -3.060072,
-            "obstacle_id": "fast_crossing_ball_2",
-            "obstacle_radius": 0.55,
-            "obstacle_x": 16.0,
-            "obstacle_y": 0.617726,
+            "distance_3d": 0.08782972932327676,
+            "distance_xy": 0.08774886625478452,
+            "drone_world_x": 25.289547,
+            "drone_world_y": 1.820955,
+            "drone_z": -2.996232,
+            "obstacle_id": "inner_patrol_ball",
+            "obstacle_radius": 0.45,
+            "obstacle_x": 25.312624,
+            "obstacle_y": 1.736295,
             "obstacle_z": -3.0,
-            "safety_clearance": -1.3166591272138157,
-            "scene_time": 95.705943,
-            "time": 1779956003.750346
+            "safety_clearance": -1.312170270676723,
+            "scene_time": 94.951039,
+            "time": 1780023720.496108
           },
-          "collision_events": 5,
-          "collision_rate_samples": 0.030208796090626388,
-          "collision_samples": 68,
-          "influence_samples": 493,
-          "min_distance_3d": 0.1833408727861843,
-          "min_distance_xy": 0.17322017910740029,
-          "min_safety_clearance": -1.3166591272138157,
-          "near_miss_rate_samples": 0.056863616170590846,
-          "near_miss_samples": 128,
-          "samples": 2251
+          "collision_events": 8,
+          "collision_rate_samples": 0.04699563611950319,
+          "collision_samples": 140,
+          "influence_samples": 882,
+          "min_distance_3d": 0.08782972932327676,
+          "min_distance_xy": 0.08774886625478452,
+          "min_safety_clearance": -1.312170270676723,
+          "near_miss_rate_samples": 0.0748573346760658,
+          "near_miss_samples": 223,
+          "samples": 2979
         },
         "2": {
           "closest": {
-            "distance_3d": 0.21397092222075376,
-            "distance_xy": 0.2088678224428068,
-            "drone_world_x": 20.198479,
-            "drone_world_y": 2.442925,
-            "drone_z": -3.046452,
-            "obstacle_id": "inner_patrol_ball",
-            "obstacle_radius": 0.45,
-            "obstacle_x": 20.065195,
-            "obstacle_y": 2.282111,
+            "distance_3d": 0.4863380988016473,
+            "distance_xy": 0.48595673964870667,
+            "drone_world_x": 28.394638,
+            "drone_world_y": 9.681121,
+            "drone_z": -3.019256,
+            "obstacle_id": "diagonal_crossing_ball",
+            "obstacle_radius": 0.5,
+            "obstacle_x": 27.941035,
+            "obstacle_y": 9.50677,
             "obstacle_z": -3.0,
-            "safety_clearance": -1.1860290777792462,
-            "scene_time": 105.713184,
-            "time": 1779956013.218877
+            "safety_clearance": -0.9636619011983527,
+            "scene_time": 110.551636,
+            "time": 1780023736.029237
           },
-          "collision_events": 4,
-          "collision_rate_samples": 0.04575744113727232,
-          "collision_samples": 103,
-          "influence_samples": 533,
-          "min_distance_3d": 0.21397092222075376,
-          "min_distance_xy": 0.2088678224428068,
-          "min_safety_clearance": -1.1860290777792462,
-          "near_miss_rate_samples": 0.06441581519324745,
-          "near_miss_samples": 145,
-          "samples": 2251
+          "collision_events": 7,
+          "collision_rate_samples": 0.03423967774420947,
+          "collision_samples": 102,
+          "influence_samples": 960,
+          "min_distance_3d": 0.4620069732839479,
+          "min_distance_xy": 0.46060749328901995,
+          "min_safety_clearance": -0.9636619011983527,
+          "near_miss_rate_samples": 0.07250755287009064,
+          "near_miss_samples": 216,
+          "samples": 2979
         },
         "3": {
           "closest": {
-            "distance_3d": 0.6352960213648438,
-            "distance_xy": 0.6311645447401177,
-            "drone_world_x": 16.611891,
-            "drone_world_y": 4.420842,
-            "drone_z": -3.072335,
-            "obstacle_id": "fast_crossing_ball_2",
-            "obstacle_radius": 0.55,
-            "obstacle_x": 16.0,
-            "obstacle_y": 4.266058,
+            "distance_3d": 0.2043590279336826,
+            "distance_xy": 0.20435861060645247,
+            "drone_world_x": 30.998158,
+            "drone_world_y": 17.059582,
+            "drone_z": -3.000413,
+            "obstacle_id": "target_patrol_ball",
+            "obstacle_radius": 0.45,
+            "obstacle_x": 30.800781,
+            "obstacle_y": 17.006622,
             "obstacle_z": -3.0,
-            "safety_clearance": -0.8647039786351562,
-            "scene_time": 98.512352,
-            "time": 1779956005.949557
+            "safety_clearance": -1.1956409720663173,
+            "scene_time": 137.938209,
+            "time": 1780023763.495873
           },
-          "collision_events": 4,
-          "collision_rate_samples": 0.03953798311861395,
-          "collision_samples": 89,
-          "influence_samples": 535,
-          "min_distance_3d": 0.6352960213648438,
-          "min_distance_xy": 0.6311645447401177,
-          "min_safety_clearance": -0.8647039786351562,
-          "near_miss_rate_samples": 0.05864060417592181,
-          "near_miss_samples": 132,
-          "samples": 2251
+          "collision_events": 3,
+          "collision_rate_samples": 0.030211480362537766,
+          "collision_samples": 90,
+          "influence_samples": 992,
+          "min_distance_3d": 0.2043590279336826,
+          "min_distance_xy": 0.20435861060645247,
+          "min_safety_clearance": -1.1956409720663173,
+          "near_miss_rate_samples": 0.05068815038603558,
+          "near_miss_samples": 151,
+          "samples": 2979
         },
         "4": {
           "closest": {
-            "distance_3d": 0.4331937786129894,
-            "distance_xy": 0.4303979612637584,
-            "drone_world_x": 19.543922,
-            "drone_world_y": 6.056376,
-            "drone_z": -3.049137,
-            "obstacle_id": "inner_patrol_ball",
+            "distance_3d": 0.04023717913820974,
+            "distance_xy": 0.03910980466584283,
+            "drone_world_x": 33.052105,
+            "drone_world_y": 22.147069,
+            "drone_z": -3.009458,
+            "obstacle_id": "target_patrol_ball",
             "obstacle_radius": 0.45,
-            "obstacle_x": 19.237968,
-            "obstacle_y": 6.359088,
+            "obstacle_x": 33.090994,
+            "obstacle_y": 22.151219,
             "obstacle_z": -3.0,
-            "safety_clearance": -0.9668062213870106,
-            "scene_time": 103.282701,
-            "time": 1779956010.748998
+            "safety_clearance": -1.3597628208617902,
+            "scene_time": 145.630889,
+            "time": 1780023771.496058
           },
-          "collision_events": 2,
-          "collision_rate_samples": 0.019102621057307864,
-          "collision_samples": 43,
-          "influence_samples": 491,
-          "min_distance_3d": 0.4331937786129894,
-          "min_distance_xy": 0.4303979612637584,
-          "min_safety_clearance": -0.9668062213870106,
-          "near_miss_rate_samples": 0.02576632607729898,
-          "near_miss_samples": 58,
-          "samples": 2251
+          "collision_events": 4,
+          "collision_rate_samples": 0.03121852970795569,
+          "collision_samples": 93,
+          "influence_samples": 1083,
+          "min_distance_3d": 0.04023717913820974,
+          "min_distance_xy": 0.03910980466584283,
+          "min_safety_clearance": -1.3597628208617902,
+          "near_miss_rate_samples": 0.045652903658945955,
+          "near_miss_samples": 136,
+          "samples": 2979
         },
         "5": {
           "closest": {
-            "distance_3d": 0.6062919940804105,
-            "distance_xy": 0.6062305709760936,
-            "drone_world_x": 19.403151,
-            "drone_world_y": 7.868154,
-            "drone_z": -3.00863,
-            "obstacle_id": "inner_patrol_ball",
+            "distance_3d": 0.9983705059310397,
+            "distance_xy": 0.9981757896402819,
+            "drone_world_x": 32.806637,
+            "drone_world_y": 23.51951,
+            "drone_z": -3.019717,
+            "obstacle_id": "target_patrol_ball",
             "obstacle_radius": 0.45,
-            "obstacle_x": 19.921956,
-            "obstacle_y": 7.554535,
+            "obstacle_x": 32.143357,
+            "obstacle_y": 22.773578,
             "obstacle_z": -3.0,
-            "safety_clearance": -0.7937080059195895,
-            "scene_time": 102.513708,
-            "time": 1779956010.348532
+            "safety_clearance": -0.4016294940689602,
+            "scene_time": 144.870497,
+            "time": 1780023770.22905
           },
-          "collision_events": 3,
-          "collision_rate_samples": 0.021768103065304308,
-          "collision_samples": 49,
-          "influence_samples": 415,
-          "min_distance_3d": 0.6062919940804105,
-          "min_distance_xy": 0.6062305709760936,
-          "min_safety_clearance": -0.7937080059195895,
-          "near_miss_rate_samples": 0.03243003109729009,
-          "near_miss_samples": 73,
-          "samples": 2251
+          "collision_events": 4,
+          "collision_rate_samples": 0.014434373950990266,
+          "collision_samples": 43,
+          "influence_samples": 964,
+          "min_distance_3d": 0.9983705059310397,
+          "min_distance_xy": 0.9981757896402819,
+          "min_safety_clearance": -0.4016294940689602,
+          "near_miss_rate_samples": 0.04028197381671702,
+          "near_miss_samples": 120,
+          "samples": 2979
         }
       },
-      "collision_events_total": 18,
-      "collision_samples_total": 352,
+      "collision_events_total": 26,
+      "collision_samples_total": 468,
       "drone_radius": 0.35,
-      "global_min_safety_clearance": -1.3166591272138157,
+      "global_min_safety_clearance": -1.3597628208617902,
       "influence_radius": 3.5,
-      "influence_samples_total": 2467,
+      "influence_samples_total": 4881,
       "near_miss_margin": 0.5,
-      "near_miss_samples_total": 536,
+      "near_miss_samples_total": 846,
       "safe_margin": 0.6
     },
     "task": {
@@ -330,32 +330,32 @@
         "1": {
           "completed": false,
           "completion_time_sec": null,
-          "min_target_distance": 15.747428470522387
+          "min_target_distance": 3.4411567375558456
         },
         "2": {
           "completed": false,
           "completion_time_sec": null,
-          "min_target_distance": 14.252419691572726
+          "min_target_distance": 1.5992751609632416
         },
         "3": {
-          "completed": false,
-          "completion_time_sec": null,
-          "min_target_distance": 14.357913555805071
+          "completed": true,
+          "completion_time_sec": 174.38481903076172,
+          "min_target_distance": 0.004148575056570702
         },
         "4": {
-          "completed": false,
-          "completion_time_sec": null,
-          "min_target_distance": 11.490435643279328
+          "completed": true,
+          "completion_time_sec": 163.118577003479,
+          "min_target_distance": 0.8241234381171332
         },
         "5": {
           "completed": false,
           "completion_time_sec": null,
-          "min_target_distance": 10.380318792567548
+          "min_target_distance": 1.699497812360461
         }
       },
-      "completion_rate": 0.0,
+      "completion_rate": 0.4,
       "mission_time_sec": null,
-      "recording_duration_sec": 149.8536398410797,
+      "recording_duration_sec": 198.11907696723938,
       "target": {
         "radius": 1.5,
         "x": 35.0,
@@ -367,34 +367,34 @@
   },
   "avoid_by_drone": {
     "1": {
-      "first_nonzero_time": 1779955978.463395,
-      "max_speed_xy": 0.21998,
-      "nonzero_rows": 755,
-      "rows": 3000
+      "first_nonzero_time": 1780023656.031608,
+      "max_speed_xy": 0.219993,
+      "nonzero_rows": 1174,
+      "rows": 4001
     },
     "2": {
-      "first_nonzero_time": 1779955979.716678,
-      "max_speed_xy": 0.219991,
-      "nonzero_rows": 844,
-      "rows": 3000
+      "first_nonzero_time": 1780023693.781168,
+      "max_speed_xy": 0.219995,
+      "nonzero_rows": 1906,
+      "rows": 4001
     },
     "3": {
-      "first_nonzero_time": 1779955980.31626,
+      "first_nonzero_time": 1780023696.031275,
       "max_speed_xy": 0.219998,
-      "nonzero_rows": 872,
-      "rows": 3000
+      "nonzero_rows": 1517,
+      "rows": 4001
     },
     "4": {
-      "first_nonzero_time": 1779955981.36523,
-      "max_speed_xy": 0.219998,
-      "nonzero_rows": 630,
-      "rows": 3000
+      "first_nonzero_time": 1780023693.781998,
+      "max_speed_xy": 0.219977,
+      "nonzero_rows": 911,
+      "rows": 4001
     },
     "5": {
-      "first_nonzero_time": 1779955982.366493,
-      "max_speed_xy": 0.219988,
-      "nonzero_rows": 584,
-      "rows": 3000
+      "first_nonzero_time": 1780023692.284193,
+      "max_speed_xy": 0.219993,
+      "nonzero_rows": 1012,
+      "rows": 4001
     }
   },
   "checks": {
@@ -407,88 +407,88 @@
   "distance_by_drone": {
     "1": {
       "closest": {
-        "distance_3d": 0.666244108743185,
-        "distance_xy": 0.6645197627053697,
-        "drone_world_x": 10.648485,
-        "drone_world_y": 5.534272,
-        "drone_z": -3.047903,
-        "obstacle_x": 10.0,
-        "obstacle_y": 5.389173,
+        "distance_3d": 0.5366686011031396,
+        "distance_xy": 0.5358096716269695,
+        "drone_world_x": 33.48328,
+        "drone_world_y": 17.483878,
+        "drone_z": -3.030351,
+        "obstacle_x": 33.090345,
+        "obstacle_y": 17.84815,
         "obstacle_z": -3.0,
-        "scene_time": 72.490978,
-        "time": 1779955980.015025
+        "scene_time": 148.829868,
+        "time": 1780023774.695845
       },
       "entered_influence": true,
-      "influence_threshold": 4.05,
-      "min_distance_xy": 0.6645197627053697
+      "influence_threshold": 3.95,
+      "min_distance_xy": 0.5358096716269695
     },
     "2": {
       "closest": {
-        "distance_3d": 0.8149399515412168,
-        "distance_xy": 0.813002017459982,
-        "drone_world_x": 10.797095,
-        "drone_world_y": 6.649541,
-        "drone_z": -3.056168,
-        "obstacle_x": 10.0,
-        "obstacle_y": 6.809578,
+        "distance_3d": 0.4620069732839479,
+        "distance_xy": 0.46060749328901995,
+        "drone_world_x": 33.412598,
+        "drone_world_y": 19.179902,
+        "drone_z": -3.035933,
+        "obstacle_x": 33.807641,
+        "obstacle_y": 18.943047,
         "obstacle_z": -3.0,
-        "scene_time": 73.674649,
-        "time": 1779955981.148726
+        "scene_time": 147.95017,
+        "time": 1780023774.029846
       },
       "entered_influence": true,
-      "influence_threshold": 4.05,
-      "min_distance_xy": 0.813002017459982
+      "influence_threshold": 3.95,
+      "min_distance_xy": 0.46060749328901995
     },
     "3": {
       "closest": {
-        "distance_3d": 0.8920232858715067,
-        "distance_xy": 0.8895919270547591,
-        "drone_world_x": 10.888235,
-        "drone_world_y": 8.225864,
-        "drone_z": -3.065816,
-        "obstacle_x": 10.0,
-        "obstacle_y": 8.27498,
+        "distance_3d": 0.2085940815914945,
+        "distance_xy": 0.2085940743405696,
+        "drone_world_x": 31.000206,
+        "drone_world_y": 17.067787,
+        "drone_z": -2.999945,
+        "obstacle_x": 30.800781,
+        "obstacle_y": 17.006622,
         "obstacle_z": -3.0,
-        "scene_time": 74.895817,
-        "time": 1779955982.349077
+        "scene_time": 137.938209,
+        "time": 1780023763.633661
       },
       "entered_influence": true,
-      "influence_threshold": 4.05,
-      "min_distance_xy": 0.8895919270547591
+      "influence_threshold": 3.95,
+      "min_distance_xy": 0.2085940743405696
     },
     "4": {
       "closest": {
-        "distance_3d": 1.0503607258023318,
-        "distance_xy": 1.0492884930294437,
-        "drone_world_x": 11.039248,
-        "drone_world_y": 9.065872,
-        "drone_z": -3.047448,
-        "obstacle_x": 10.0,
-        "obstacle_y": 9.210682,
+        "distance_3d": 0.04023717913820974,
+        "distance_xy": 0.03910980466584283,
+        "drone_world_x": 33.052105,
+        "drone_world_y": 22.147069,
+        "drone_z": -3.009458,
+        "obstacle_x": 33.090994,
+        "obstacle_y": 22.151219,
         "obstacle_z": -3.0,
-        "scene_time": 75.675568,
-        "time": 1779955983.148507
+        "scene_time": 145.630889,
+        "time": 1780023771.496058
       },
       "entered_influence": true,
-      "influence_threshold": 4.05,
-      "min_distance_xy": 1.0492884930294437
+      "influence_threshold": 3.95,
+      "min_distance_xy": 0.03910980466584283
     },
     "5": {
       "closest": {
-        "distance_3d": 1.17093956671982,
-        "distance_xy": 1.1709105876479209,
-        "drone_world_x": 11.144321,
-        "drone_world_y": 10.442501,
-        "drone_z": -2.991762,
-        "obstacle_x": 10.0,
-        "obstacle_y": 10.194386,
+        "distance_3d": 1.1640197661972884,
+        "distance_xy": 1.1639125158262498,
+        "drone_world_x": 32.900406,
+        "drone_world_y": 23.657642,
+        "drone_z": -3.015801,
+        "obstacle_x": 32.143357,
+        "obstacle_y": 22.773578,
         "obstacle_z": -3.0,
-        "scene_time": 76.495321,
-        "time": 1779955984.015701
+        "scene_time": 144.870497,
+        "time": 1780023770.56363
       },
       "entered_influence": true,
-      "influence_threshold": 4.05,
-      "min_distance_xy": 1.1709105876479209
+      "influence_threshold": 3.95,
+      "min_distance_xy": 1.1639125158262498
     }
   },
   "input_files": {
@@ -497,27 +497,27 @@
     "obstacles_csv": "/home/lililab/ws_xtd2/logs/algorithm_eval_tmp/hard_current/obstacles_ros.csv"
   },
   "obstacle_summary": {
-    "all_obstacle_rows": 46374,
+    "all_obstacle_rows": 63535,
     "first_scene_time": 0.0,
-    "last_scene_time": 140.32025,
+    "last_scene_time": 185.397542,
     "name": "fast_crossing_ball_1",
-    "named_dynamic_rows": 1770,
-    "speed_avg": 1.269378513157916,
-    "speed_max": 1.800000626872113,
+    "named_dynamic_rows": 2425,
+    "speed_avg": 1.2776082298541316,
+    "speed_max": 1.800000633344333,
     "speed_min": 0.0,
     "x_range": [
       10.0,
-      34.0
+      33.999998
     ],
     "y_range": [
       -15.0,
-      22.999902
+      22.99998
     ]
   },
   "row_counts": {
-    "avoid_cmds": 15000,
-    "drones": 11255,
-    "obstacles": 46374
+    "avoid_cmds": 20005,
+    "drones": 14895,
+    "obstacles": 63535
   },
   "run_dir": "/home/lililab/ws_xtd2/logs/algorithm_eval_tmp/hard_current"
 }

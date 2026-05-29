@@ -43,6 +43,33 @@ def _level_colors(values):
     return values.map({'Easy': '#4e79a7', 'Medium': '#f28e2b', 'Hard': '#e15759'}).fillna('#777777')
 
 
+def _inside_legend(ax, loc='best', fontsize=8):
+    handles, labels = ax.get_legend_handles_labels()
+    seen = set()
+    unique = []
+    for handle, label in zip(handles, labels):
+        if not label or label in seen:
+            continue
+        unique.append((handle, label))
+        seen.add(label)
+    if not unique:
+        return
+    ax.legend(
+        [item[0] for item in unique],
+        [item[1] for item in unique],
+        loc=loc,
+        fontsize=fontsize,
+        frameon=True,
+        framealpha=0.88,
+    )
+
+
+def _finish_figure(fig, path):
+    fig.tight_layout()
+    fig.savefig(path)
+    plt.close(fig)
+
+
 def _bool_series(series):
     if series.dtype == bool:
         return series
@@ -104,18 +131,58 @@ def plot_summary_bars(summary_csv, output_dir):
                 ha='center',
                 va='bottom',
                 fontsize=8,
+                clip_on=True,
             )
         if value_col == 'D_formation':
             ax.axhline(1.0, color='#4e79a7', linestyle='--', linewidth=1.0, label='Easy/Medium threshold')
             ax.axhline(3.5, color='#e15759', linestyle='--', linewidth=1.0, label='Medium/Hard threshold')
             ax.set_ylim(0.0, max(10.0, float(df[value_col].max()) * 1.2))
-            ax.legend(loc='upper left', fontsize=8)
+            _inside_legend(ax, loc='upper left', fontsize=8)
         plt.ylabel(value_col)
         plt.xticks(rotation=30, ha='right')
         plt.title(f'{value_col} by scene')
-        plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, filename))
-        plt.close()
+        _finish_figure(fig, os.path.join(output_dir, filename))
+
+
+def plot_suite_scoreboard(summary_csv, output_dir):
+    """绘制 S、D 和失效采样比例的综合对照图，便于论文结果阅读。"""
+    df = _normalize_summary(pd.read_csv(summary_csv))
+    ensure_dir(output_dir)
+    names = df['scene_name'].astype(str).tolist()
+    x = range(len(df))
+    colors = _level_colors(df['difficulty_level'])
+
+    fig, axes = plt.subplots(3, 1, figsize=(9, 7.2), dpi=180, sharex=True)
+    metrics = [
+        ('S_formation', 'Mean survival time S (s)', None),
+        ('D_formation', 'Difficulty score D (0-10)', (0.0, 10.0)),
+        ('failed_sample_ratio', 'Failed sample ratio', (0.0, 1.0)),
+    ]
+    for ax, (col, ylabel, ylim) in zip(axes, metrics):
+        bars = ax.bar(x, df[col], color=colors, width=0.62)
+        for bar, value in zip(bars, df[col]):
+            text = f'{value:.2f}' if col != 'failed_sample_ratio' else f'{100.0 * value:.1f}%'
+            ax.text(
+                bar.get_x() + bar.get_width() / 2.0,
+                bar.get_height(),
+                text,
+                ha='center',
+                va='bottom',
+                fontsize=8,
+                clip_on=True,
+            )
+        if col == 'D_formation':
+            ax.axhline(1.0, color='#4e79a7', linestyle='--', linewidth=0.9, label='Easy/Medium')
+            ax.axhline(3.5, color='#e15759', linestyle='--', linewidth=0.9, label='Medium/Hard')
+            _inside_legend(ax, loc='upper left', fontsize=7)
+        ax.set_ylabel(ylabel)
+        if ylim is not None:
+            ax.set_ylim(*ylim)
+        ax.grid(True, axis='y', linewidth=0.35, alpha=0.35)
+    axes[-1].set_xticks(list(x))
+    axes[-1].set_xticklabels(names, rotation=20, ha='right')
+    fig.suptitle('Formation Survivability Summary', fontsize=12)
+    _finish_figure(fig, os.path.join(output_dir, 'formation_survivability_scoreboard.png'))
 
 
 def plot_survival_heatmap(
@@ -180,10 +247,8 @@ def plot_survival_heatmap(
     ax.set_title(f'Formation survivability map at z={float(z_value):g}')
     ax.set_aspect('equal', adjustable='box')
     ax.grid(True, linewidth=0.35, alpha=0.35)
-    ax.legend(loc='best', fontsize=8)
-    plt.tight_layout()
-    plt.savefig(output_path)
-    plt.close()
+    _inside_legend(ax, loc='best', fontsize=8)
+    _finish_figure(fig, output_path)
 
 
 def plot_trajectory_topdown(config_path, trajectory_csv, output_path, samples_csv=''):
@@ -216,10 +281,8 @@ def plot_trajectory_topdown(config_path, trajectory_csv, output_path, samples_cs
     ax.set_ylabel('world y')
     ax.set_title('Obstacle trajectories, task region, and sampled formation centers')
     ax.grid(True, linewidth=0.35, alpha=0.35)
-    ax.legend(loc='best', fontsize=8)
-    plt.tight_layout()
-    plt.savefig(output_path)
-    plt.close()
+    _inside_legend(ax, loc='best', fontsize=8)
+    _finish_figure(fig, output_path)
 
 
 def plot_scene_diagnostics(config_path, trajectory_csv, samples_csv, output_dir, z_value):
@@ -271,6 +334,7 @@ def main():
     ensure_dir(args.output_dir)
     if args.summary_csv:
         plot_summary_bars(args.summary_csv, args.output_dir)
+        plot_suite_scoreboard(args.summary_csv, args.output_dir)
     if args.samples:
         plot_survival_heatmap(
             args.samples,

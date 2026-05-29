@@ -1,7 +1,7 @@
 {
   "algorithm_metrics": {
     "avoidance_success": {
-      "avoidance_success_rate": 0.0,
+      "avoidance_success_rate": 0.6,
       "by_drone": {
         "1": {
           "avoidance_success": false,
@@ -16,93 +16,93 @@
           "required_avoidance": true
         },
         "3": {
-          "avoidance_success": false,
-          "collision_free": false,
+          "avoidance_success": true,
+          "collision_free": true,
           "has_nonzero_avoid_cmd": true,
           "required_avoidance": true
         },
         "4": {
-          "avoidance_success": false,
-          "collision_free": false,
+          "avoidance_success": true,
+          "collision_free": true,
           "has_nonzero_avoid_cmd": true,
           "required_avoidance": true
         },
         "5": {
-          "avoidance_success": false,
-          "collision_free": false,
+          "avoidance_success": true,
+          "collision_free": true,
           "has_nonzero_avoid_cmd": true,
           "required_avoidance": true
         }
       },
       "definition": "For drones entering the obstacle influence zone, success requires nonzero avoid command and zero collision events.",
       "required_drone_count": 5,
-      "successful_drone_count": 0
+      "successful_drone_count": 3
     },
     "control_smoothness": {
       "1": {
-        "cmd_accel_max": 2.172437510009183,
-        "cmd_accel_rms": 0.08919893134378132,
-        "cmd_delta_max": 0.10932152163686709,
-        "cmd_delta_rms": 0.004481473438551036,
-        "cmd_jerk_max": 38.57431675952437,
-        "cmd_jerk_rms": 1.2785565070789133,
-        "max_speed_xy": 0.219998,
-        "mean_speed_xy": 0.013612060261272652,
-        "nonzero_ratio": 0.08386009270965024,
-        "nonzero_rows": 199,
-        "samples": 2373
+        "cmd_accel_max": 0.8886879170905156,
+        "cmd_accel_rms": 0.07179238418922823,
+        "cmd_delta_max": 0.044649411384698,
+        "cmd_delta_rms": 0.0036021545307119525,
+        "cmd_jerk_max": 17.68816630477112,
+        "cmd_jerk_rms": 1.0799109984454511,
+        "max_speed_xy": 0.219986,
+        "mean_speed_xy": 0.023411226666666667,
+        "nonzero_ratio": 0.12333333333333334,
+        "nonzero_rows": 444,
+        "samples": 3600
       },
       "2": {
-        "cmd_accel_max": 1.4480733999013313,
-        "cmd_accel_rms": 0.07138782435513968,
-        "cmd_delta_max": 0.0739706798130178,
-        "cmd_delta_rms": 0.00354633368440992,
-        "cmd_jerk_max": 27.514423240511665,
-        "cmd_jerk_rms": 0.9633363667390626,
-        "max_speed_xy": 0.219997,
-        "mean_speed_xy": 0.008948659502739148,
-        "nonzero_ratio": 0.044669195111672985,
-        "nonzero_rows": 106,
-        "samples": 2373
+        "cmd_accel_max": 1.788185384191847,
+        "cmd_accel_rms": 0.07151510334483277,
+        "cmd_delta_max": 0.08980780868053735,
+        "cmd_delta_rms": 0.003578497785865656,
+        "cmd_jerk_max": 35.07859305222919,
+        "cmd_jerk_rms": 1.1395842569241086,
+        "max_speed_xy": 0.219999,
+        "mean_speed_xy": 0.014569020555555555,
+        "nonzero_ratio": 0.07388888888888889,
+        "nonzero_rows": 266,
+        "samples": 3600
       },
       "3": {
-        "cmd_accel_max": 1.1393481519176663,
-        "cmd_accel_rms": 0.0643412817757539,
-        "cmd_delta_max": 0.05730011443269551,
-        "cmd_delta_rms": 0.0032373295454746916,
-        "cmd_jerk_max": 22.65465303394745,
-        "cmd_jerk_rms": 0.8813255028372985,
-        "max_speed_xy": 0.219995,
-        "mean_speed_xy": 0.010973523388116309,
-        "nonzero_ratio": 0.0539401601348504,
-        "nonzero_rows": 128,
-        "samples": 2373
+        "cmd_accel_max": 0.7402529020910258,
+        "cmd_accel_rms": 0.05466007777242891,
+        "cmd_delta_max": 0.03964054657796737,
+        "cmd_delta_rms": 0.002775849656777634,
+        "cmd_jerk_max": 13.823582325647237,
+        "cmd_jerk_rms": 0.8674979201058985,
+        "max_speed_xy": 0.219976,
+        "mean_speed_xy": 0.015346731944444445,
+        "nonzero_ratio": 0.07944444444444444,
+        "nonzero_rows": 286,
+        "samples": 3600
       },
       "4": {
-        "cmd_accel_max": 0.8374197103778874,
-        "cmd_accel_rms": 0.0598220382579157,
-        "cmd_delta_max": 0.048297486352811364,
-        "cmd_delta_rms": 0.0030260168958210175,
-        "cmd_jerk_max": 14.962534867623448,
-        "cmd_jerk_rms": 0.7660162404107926,
-        "max_speed_xy": 0.219991,
-        "mean_speed_xy": 0.011267757269279394,
-        "nonzero_ratio": 0.05520438263801096,
-        "nonzero_rows": 131,
-        "samples": 2373
+        "cmd_accel_max": 1.1247635463042884,
+        "cmd_accel_rms": 0.06391149242665797,
+        "cmd_delta_max": 0.05101481503445838,
+        "cmd_delta_rms": 0.0031655948786626985,
+        "cmd_jerk_max": 24.798542036082686,
+        "cmd_jerk_rms": 1.0273517723839436,
+        "max_speed_xy": 0.21986,
+        "mean_speed_xy": 0.015220442777777777,
+        "nonzero_ratio": 0.08944444444444444,
+        "nonzero_rows": 322,
+        "samples": 3600
       },
       "5": {
-        "cmd_accel_max": 1.2218287892671118,
-        "cmd_accel_rms": 0.05827010991996895,
-        "cmd_delta_max": 0.05700697018786387,
-        "cmd_delta_rms": 0.0028999577588945465,
-        "cmd_jerk_max": 26.187422088251065,
-        "cmd_jerk_rms": 0.8736446560333897,
-        "max_speed_xy": 0.219964,
-        "mean_speed_xy": 0.011870197218710493,
-        "nonzero_ratio": 0.05773282764433207,
-        "nonzero_rows": 137,
-        "samples": 2373
+        "cmd_accel_max": 1.312745040803493,
+        "cmd_accel_rms": 0.06158194652632928,
+        "cmd_delta_max": 0.06530010696009617,
+        "cmd_delta_rms": 0.0031002584348532266,
+        "cmd_jerk_max": 26.39045512141726,
+        "cmd_jerk_rms": 0.9216654525627876,
+        "max_speed_xy": 0.219968,
+        "mean_speed_xy": 0.01219819638888889,
+        "nonzero_ratio": 0.06194444444444445,
+        "nonzero_rows": 223,
+        "samples": 3600
       }
     },
     "definitions": {
@@ -116,213 +116,213 @@
     },
     "path": {
       "1": {
-        "avg_speed_xy": 0.5040404878636172,
-        "duration_sec": 118.53024911880493,
-        "end_time": 1779955122.451961,
-        "path_length_3d": 59.832293430469605,
-        "path_length_xy": 59.74404459243853,
-        "samples": 1781,
-        "start_time": 1779955003.921712,
-        "state_speed_xy_avg": 0.6670809949292291,
-        "state_speed_xy_max": 0.8937671888092559
+        "avg_speed_xy": 0.46297448113568707,
+        "duration_sec": 178.92181491851807,
+        "end_time": 1780023321.907465,
+        "path_length_3d": 83.06811818443272,
+        "path_length_xy": 82.83623442575633,
+        "samples": 2694,
+        "start_time": 1780023142.98565,
+        "state_speed_xy_avg": 0.6282252413189265,
+        "state_speed_xy_max": 0.8868526900545547
       },
       "2": {
-        "avg_speed_xy": 0.5043808920518867,
-        "duration_sec": 118.53024911880493,
-        "end_time": 1779955122.451961,
-        "path_length_3d": 59.86973564459091,
-        "path_length_xy": 59.784392785675195,
-        "samples": 1781,
-        "start_time": 1779955003.921712,
-        "state_speed_xy_avg": 0.6689819457884213,
-        "state_speed_xy_max": 0.8942730220475177
+        "avg_speed_xy": 0.463728653741034,
+        "duration_sec": 178.92181491851807,
+        "end_time": 1780023321.907465,
+        "path_length_3d": 83.17351513879734,
+        "path_length_xy": 82.97117235706683,
+        "samples": 2694,
+        "start_time": 1780023142.98565,
+        "state_speed_xy_avg": 0.6292429032930704,
+        "state_speed_xy_max": 0.890841615366615
       },
       "3": {
-        "avg_speed_xy": 0.49849413726206376,
-        "duration_sec": 118.53024911880493,
-        "end_time": 1779955122.451961,
-        "path_length_3d": 59.1586546820339,
-        "path_length_xy": 59.086634273936156,
-        "samples": 1781,
-        "start_time": 1779955003.921712,
-        "state_speed_xy_avg": 0.6623442250518371,
-        "state_speed_xy_max": 0.8861892383373882
+        "avg_speed_xy": 0.46356270988408854,
+        "duration_sec": 178.92181491851807,
+        "end_time": 1780023321.907465,
+        "path_length_3d": 83.24693369420922,
+        "path_length_xy": 82.94148138100758,
+        "samples": 2694,
+        "start_time": 1780023142.98565,
+        "state_speed_xy_avg": 0.6305456959786944,
+        "state_speed_xy_max": 0.8985153460153031
       },
       "4": {
-        "avg_speed_xy": 0.5028592117207256,
-        "duration_sec": 118.53024911880493,
-        "end_time": 1779955122.451961,
-        "path_length_3d": 59.73906165225759,
-        "path_length_xy": 59.60402763694348,
-        "samples": 1781,
-        "start_time": 1779955003.921712,
-        "state_speed_xy_avg": 0.6673726749853459,
-        "state_speed_xy_max": 0.8881711407155718
+        "avg_speed_xy": 0.464132675967544,
+        "duration_sec": 178.92181491851807,
+        "end_time": 1780023321.907465,
+        "path_length_3d": 83.31202308055192,
+        "path_length_xy": 83.04346074710142,
+        "samples": 2694,
+        "start_time": 1780023142.98565,
+        "state_speed_xy_avg": 0.6292879353248633,
+        "state_speed_xy_max": 0.895285532469949
       },
       "5": {
-        "avg_speed_xy": 0.5036269098421963,
-        "duration_sec": 118.53024911880493,
-        "end_time": 1779955122.451961,
-        "path_length_3d": 59.790410713069306,
-        "path_length_xy": 59.69502308652944,
-        "samples": 1781,
-        "start_time": 1779955003.921712,
-        "state_speed_xy_avg": 0.6693912219725558,
-        "state_speed_xy_max": 0.887593657644082
+        "avg_speed_xy": 0.4643749320822412,
+        "duration_sec": 178.92181491851807,
+        "end_time": 1780023321.907465,
+        "path_length_3d": 83.28478431286675,
+        "path_length_xy": 83.08680565081815,
+        "samples": 2694,
+        "start_time": 1780023142.98565,
+        "state_speed_xy_avg": 0.6304044232452674,
+        "state_speed_xy_max": 0.8888901321277
       }
     },
     "real_time_factor": {
       "available": true,
-      "real_time_factor": 0.8608579585988649,
-      "scene_duration_sec": 100.930068,
-      "wall_duration_sec": 117.24357891082764
+      "real_time_factor": 0.8899344327265275,
+      "scene_duration_sec": 159.738814,
+      "wall_duration_sec": 179.49503707885742
     },
     "safety": {
       "by_drone": {
         "1": {
           "closest": {
-            "distance_3d": 0.2535285378690139,
-            "distance_xy": 0.2530203738397365,
-            "drone_world_x": 11.155813,
-            "drone_world_y": 2.830327,
-            "drone_z": -3.016044,
-            "obstacle_id": "crossing_ball_left",
+            "distance_3d": 0.8653273555574228,
+            "distance_xy": 0.8253482610510561,
+            "drone_world_x": 16.208916,
+            "drone_world_y": 0.771234,
+            "drone_z": -2.740016,
+            "obstacle_id": "crossing_ball_right",
             "obstacle_radius": 0.5,
-            "obstacle_x": 11.0,
-            "obstacle_y": 3.02968,
+            "obstacle_x": 17.0,
+            "obstacle_y": 0.535892,
             "obstacle_z": -3.0,
-            "safety_clearance": -1.196471462130986,
-            "scene_time": 82.921867,
-            "time": 1779955104.119479
+            "safety_clearance": -0.5846726444425772,
+            "scene_time": 81.464108,
+            "time": 1780023243.574934
           },
           "collision_events": 1,
-          "collision_rate_samples": 0.015721504772599662,
-          "collision_samples": 28,
-          "influence_samples": 148,
-          "min_distance_3d": 0.2535285378690139,
-          "min_distance_xy": 0.2530203738397365,
-          "min_safety_clearance": -1.196471462130986,
-          "near_miss_rate_samples": 0.02021336327905671,
-          "near_miss_samples": 36,
-          "samples": 1781
+          "collision_rate_samples": 0.009279881217520415,
+          "collision_samples": 25,
+          "influence_samples": 349,
+          "min_distance_3d": 0.8653273555574228,
+          "min_distance_xy": 0.8253482610510561,
+          "min_safety_clearance": -0.5846726444425772,
+          "near_miss_rate_samples": 0.018188567186340016,
+          "near_miss_samples": 49,
+          "samples": 2694
         },
         "2": {
           "closest": {
-            "distance_3d": 0.3429008788760979,
-            "distance_xy": 0.34173123347156953,
-            "drone_world_x": 11.306549,
-            "drone_world_y": 3.925904,
-            "drone_z": -3.028298,
-            "obstacle_id": "crossing_ball_left",
-            "obstacle_radius": 0.5,
-            "obstacle_x": 11.0,
-            "obstacle_y": 4.076927,
+            "distance_3d": 0.2564212714128844,
+            "distance_xy": 0.255498535567232,
+            "drone_world_x": 23.262016,
+            "drone_world_y": 2.440134,
+            "drone_z": -3.021734,
+            "obstacle_id": "center_patrol_ball",
+            "obstacle_radius": 0.45,
+            "obstacle_x": 23.097955,
+            "obstacle_y": 2.636,
             "obstacle_z": -3.0,
-            "safety_clearance": -1.107099121123902,
-            "scene_time": 84.085474,
-            "time": 1779955105.319017
+            "safety_clearance": -1.1435787285871155,
+            "scene_time": 96.305361,
+            "time": 1780023258.042544
           },
           "collision_events": 1,
-          "collision_rate_samples": 0.01403705783267827,
-          "collision_samples": 25,
-          "influence_samples": 121,
-          "min_distance_3d": 0.3429008788760979,
-          "min_distance_xy": 0.34173123347156953,
-          "min_safety_clearance": -1.107099121123902,
-          "near_miss_rate_samples": 0.02021336327905671,
-          "near_miss_samples": 36,
-          "samples": 1781
+          "collision_rate_samples": 0.013363028953229399,
+          "collision_samples": 36,
+          "influence_samples": 284,
+          "min_distance_3d": 0.2564212714128844,
+          "min_distance_xy": 0.255498535567232,
+          "min_safety_clearance": -1.1435787285871155,
+          "near_miss_rate_samples": 0.025241276911655532,
+          "near_miss_samples": 68,
+          "samples": 2694
         },
         "3": {
           "closest": {
-            "distance_3d": 0.41288202533532453,
-            "distance_xy": 0.40798312642681633,
-            "drone_world_x": 11.400293,
-            "drone_world_y": 5.433341,
-            "drone_z": -3.063414,
-            "obstacle_id": "crossing_ball_left",
-            "obstacle_radius": 0.5,
-            "obstacle_x": 11.0,
-            "obstacle_y": 5.512181,
+            "distance_3d": 1.757911262607416,
+            "distance_xy": 1.7569207538150375,
+            "drone_world_x": 21.284834,
+            "drone_world_y": 4.31259,
+            "drone_z": -3.059004,
+            "obstacle_id": "center_patrol_ball",
+            "obstacle_radius": 0.45,
+            "obstacle_x": 20.403465,
+            "obstacle_y": 2.792735,
             "obstacle_z": -3.0,
-            "safety_clearance": -1.0371179746646755,
-            "scene_time": 85.680201,
-            "time": 1779955106.918716
+            "safety_clearance": 0.3579112626074161,
+            "scene_time": 94.274819,
+            "time": 1780023256.04106
           },
-          "collision_events": 1,
-          "collision_rate_samples": 0.02021336327905671,
-          "collision_samples": 36,
-          "influence_samples": 117,
-          "min_distance_3d": 0.41288202533532453,
-          "min_distance_xy": 0.40798312642681633,
-          "min_safety_clearance": -1.0371179746646755,
-          "near_miss_rate_samples": 0.02695115103874228,
-          "near_miss_samples": 48,
-          "samples": 1781
+          "collision_events": 0,
+          "collision_rate_samples": 0.0,
+          "collision_samples": 0,
+          "influence_samples": 319,
+          "min_distance_3d": 1.757911262607416,
+          "min_distance_xy": 1.7569207538150375,
+          "min_safety_clearance": 0.3579112626074161,
+          "near_miss_rate_samples": 0.009279881217520415,
+          "near_miss_samples": 25,
+          "samples": 2694
         },
         "4": {
           "closest": {
-            "distance_3d": 0.5395855734941398,
-            "distance_xy": 0.5395406451362119,
-            "drone_world_x": 11.532145,
-            "drone_world_y": 6.305549,
-            "drone_z": -3.006963,
-            "obstacle_id": "crossing_ball_left",
-            "obstacle_radius": 0.5,
-            "obstacle_x": 11.0,
-            "obstacle_y": 6.216522,
+            "distance_3d": 2.0486432332158286,
+            "distance_xy": 2.048303823386805,
+            "drone_world_x": 24.322214,
+            "drone_world_y": 6.037041,
+            "drone_z": -3.03729,
+            "obstacle_id": "center_patrol_ball",
+            "obstacle_radius": 0.45,
+            "obstacle_x": 26.366764,
+            "obstacle_y": 5.91309,
             "obstacle_z": -3.0,
-            "safety_clearance": -0.9104144265058601,
-            "scene_time": 86.462802,
-            "time": 1779955107.651804
+            "safety_clearance": 0.6486432332158287,
+            "scene_time": 99.906595,
+            "time": 1780023261.974588
           },
-          "collision_events": 1,
-          "collision_rate_samples": 0.016844469399213923,
-          "collision_samples": 30,
-          "influence_samples": 129,
-          "min_distance_3d": 0.5395855734941398,
-          "min_distance_xy": 0.5395406451362119,
-          "min_safety_clearance": -0.9104144265058601,
-          "near_miss_rate_samples": 0.02695115103874228,
-          "near_miss_samples": 48,
-          "samples": 1781
+          "collision_events": 0,
+          "collision_rate_samples": 0.0,
+          "collision_samples": 0,
+          "influence_samples": 368,
+          "min_distance_3d": 2.0486432332158286,
+          "min_distance_xy": 2.048303823386805,
+          "min_safety_clearance": 0.6486432332158287,
+          "near_miss_rate_samples": 0.0,
+          "near_miss_samples": 0,
+          "samples": 2694
         },
         "5": {
           "closest": {
-            "distance_3d": 0.6633736413281728,
-            "distance_xy": 0.6633727992313215,
-            "drone_world_x": 11.663134,
-            "drone_world_y": 7.69427,
-            "drone_z": -3.001057,
-            "obstacle_id": "crossing_ball_left",
-            "obstacle_radius": 0.5,
-            "obstacle_x": 11.0,
-            "obstacle_y": 7.676472,
+            "distance_3d": 1.652864452803678,
+            "distance_xy": 1.6451430823056097,
+            "drone_world_x": 19.249607,
+            "drone_world_y": 7.958383,
+            "drone_z": -2.840422,
+            "obstacle_id": "center_patrol_ball",
+            "obstacle_radius": 0.45,
+            "obstacle_x": 17.957214,
+            "obstacle_y": 8.97633,
             "obstacle_z": -3.0,
-            "safety_clearance": -0.7866263586718272,
-            "scene_time": 88.084969,
-            "time": 1779955109.318479
+            "safety_clearance": 0.2528644528036781,
+            "scene_time": 88.732144,
+            "time": 1780023250.507929
           },
-          "collision_events": 1,
-          "collision_rate_samples": 0.025266704098820886,
-          "collision_samples": 45,
-          "influence_samples": 124,
-          "min_distance_3d": 0.6633736413281728,
-          "min_distance_xy": 0.6633727992313215,
-          "min_safety_clearance": -0.7866263586718272,
-          "near_miss_rate_samples": 0.030881527231892195,
-          "near_miss_samples": 55,
-          "samples": 1781
+          "collision_events": 0,
+          "collision_rate_samples": 0.0,
+          "collision_samples": 0,
+          "influence_samples": 358,
+          "min_distance_3d": 1.652864452803678,
+          "min_distance_xy": 1.6451430823056097,
+          "min_safety_clearance": 0.2528644528036781,
+          "near_miss_rate_samples": 0.013734224201930215,
+          "near_miss_samples": 37,
+          "samples": 2694
         }
       },
-      "collision_events_total": 5,
-      "collision_samples_total": 164,
+      "collision_events_total": 2,
+      "collision_samples_total": 61,
       "drone_radius": 0.35,
-      "global_min_safety_clearance": -1.196471462130986,
+      "global_min_safety_clearance": -1.1435787285871155,
       "influence_radius": 3.5,
-      "influence_samples_total": 639,
+      "influence_samples_total": 1678,
       "near_miss_margin": 0.5,
-      "near_miss_samples_total": 223,
+      "near_miss_samples_total": 179,
       "safe_margin": 0.6
     },
     "task": {
@@ -330,32 +330,32 @@
         "1": {
           "completed": false,
           "completion_time_sec": null,
-          "min_target_distance": 23.840989219918914
+          "min_target_distance": 3.507531821734194
         },
         "2": {
           "completed": false,
           "completion_time_sec": null,
-          "min_target_distance": 23.520190251973347
+          "min_target_distance": 1.720873277276103
         },
         "3": {
-          "completed": false,
-          "completion_time_sec": null,
-          "min_target_distance": 23.291516350337236
+          "completed": true,
+          "completion_time_sec": 155.25561094284058,
+          "min_target_distance": 0.025595386576491436
         },
         "4": {
-          "completed": false,
-          "completion_time_sec": null,
-          "min_target_distance": 22.068850070136097
+          "completed": true,
+          "completion_time_sec": 152.85537791252136,
+          "min_target_distance": 0.6062434943073611
         },
         "5": {
-          "completed": false,
-          "completion_time_sec": null,
-          "min_target_distance": 20.689147456942276
+          "completed": true,
+          "completion_time_sec": 150.9226930141449,
+          "min_target_distance": 1.2855215727859266
         }
       },
-      "completion_rate": 0.0,
+      "completion_rate": 0.6,
       "mission_time_sec": null,
-      "recording_duration_sec": 118.53024911880493,
+      "recording_duration_sec": 178.92181491851807,
       "target": {
         "radius": 1.5,
         "x": 32.0,
@@ -367,34 +367,34 @@
   },
   "avoid_by_drone": {
     "1": {
-      "first_nonzero_time": 1779955069.676404,
-      "max_speed_xy": 0.219998,
-      "nonzero_rows": 199,
-      "rows": 2373
+      "first_nonzero_time": 1780023192.811986,
+      "max_speed_xy": 0.219986,
+      "nonzero_rows": 444,
+      "rows": 3600
     },
     "2": {
-      "first_nonzero_time": 1779955103.127361,
-      "max_speed_xy": 0.219997,
-      "nonzero_rows": 106,
-      "rows": 2373
+      "first_nonzero_time": 1780023239.718479,
+      "max_speed_xy": 0.219999,
+      "nonzero_rows": 266,
+      "rows": 3600
     },
     "3": {
-      "first_nonzero_time": 1779955104.327036,
-      "max_speed_xy": 0.219995,
-      "nonzero_rows": 128,
-      "rows": 2373
+      "first_nonzero_time": 1780023238.866468,
+      "max_speed_xy": 0.219976,
+      "nonzero_rows": 286,
+      "rows": 3600
     },
     "4": {
-      "first_nonzero_time": 1779955105.484801,
-      "max_speed_xy": 0.219991,
-      "nonzero_rows": 131,
-      "rows": 2373
+      "first_nonzero_time": 1780023238.613898,
+      "max_speed_xy": 0.21986,
+      "nonzero_rows": 322,
+      "rows": 3600
     },
     "5": {
-      "first_nonzero_time": 1779955106.728431,
-      "max_speed_xy": 0.219964,
-      "nonzero_rows": 137,
-      "rows": 2373
+      "first_nonzero_time": 1780023248.712341,
+      "max_speed_xy": 0.219968,
+      "nonzero_rows": 223,
+      "rows": 3600
     }
   },
   "checks": {
@@ -407,88 +407,88 @@
   "distance_by_drone": {
     "1": {
       "closest": {
-        "distance_3d": 0.2535285378690139,
-        "distance_xy": 0.2530203738397365,
-        "drone_world_x": 11.155813,
-        "drone_world_y": 2.830327,
-        "drone_z": -3.016044,
-        "obstacle_x": 11.0,
-        "obstacle_y": 3.02968,
+        "distance_3d": 2.004803749582987,
+        "distance_xy": 2.004748876157062,
+        "drone_world_x": 23.226479,
+        "drone_world_y": 0.640986,
+        "drone_z": -3.014833,
+        "obstacle_x": 22.574816,
+        "obstacle_y": 2.536864,
         "obstacle_z": -3.0,
-        "scene_time": 82.921867,
-        "time": 1779955104.119479
+        "scene_time": 95.910724,
+        "time": 1780023257.842579
       },
       "entered_influence": true,
-      "influence_threshold": 4.0,
-      "min_distance_xy": 0.2530203738397365
+      "influence_threshold": 3.95,
+      "min_distance_xy": 2.004748876157062
     },
     "2": {
       "closest": {
-        "distance_3d": 0.3429008788760979,
-        "distance_xy": 0.34173123347156953,
-        "drone_world_x": 11.306549,
-        "drone_world_y": 3.925904,
-        "drone_z": -3.028298,
-        "obstacle_x": 11.0,
-        "obstacle_y": 4.076927,
+        "distance_3d": 0.2824222909421291,
+        "distance_xy": 0.28127723972088575,
+        "drone_world_x": 23.299948,
+        "drone_world_y": 2.440256,
+        "drone_z": -3.025406,
+        "obstacle_x": 23.097955,
+        "obstacle_y": 2.636,
         "obstacle_z": -3.0,
-        "scene_time": 84.085474,
-        "time": 1779955105.319017
+        "scene_time": 96.305361,
+        "time": 1780023258.24311
       },
       "entered_influence": true,
-      "influence_threshold": 4.0,
-      "min_distance_xy": 0.34173123347156953
+      "influence_threshold": 3.95,
+      "min_distance_xy": 0.28127723972088575
     },
     "3": {
       "closest": {
-        "distance_3d": 0.41288202533532453,
-        "distance_xy": 0.40798312642681633,
-        "drone_world_x": 11.400293,
-        "drone_world_y": 5.433341,
-        "drone_z": -3.063414,
-        "obstacle_x": 11.0,
-        "obstacle_y": 5.512181,
+        "distance_3d": 1.7805500315309872,
+        "distance_xy": 1.778765393407742,
+        "drone_world_x": 21.434614,
+        "drone_world_y": 4.333064,
+        "drone_z": -3.0797,
+        "obstacle_x": 20.90039,
+        "obstacle_y": 2.636417,
         "obstacle_z": -3.0,
-        "scene_time": 85.680201,
-        "time": 1779955106.918716
+        "scene_time": 94.660909,
+        "time": 1780023256.640782
       },
       "entered_influence": true,
-      "influence_threshold": 4.0,
-      "min_distance_xy": 0.40798312642681633
+      "influence_threshold": 3.95,
+      "min_distance_xy": 1.778765393407742
     },
     "4": {
       "closest": {
-        "distance_3d": 0.5395855734941398,
-        "distance_xy": 0.5395406451362119,
-        "drone_world_x": 11.532145,
-        "drone_world_y": 6.305549,
-        "drone_z": -3.006963,
-        "obstacle_x": 11.0,
-        "obstacle_y": 6.216522,
+        "distance_3d": 2.0486432332158286,
+        "distance_xy": 2.048303823386805,
+        "drone_world_x": 24.322214,
+        "drone_world_y": 6.037041,
+        "drone_z": -3.03729,
+        "obstacle_x": 26.366764,
+        "obstacle_y": 5.91309,
         "obstacle_z": -3.0,
-        "scene_time": 86.462802,
-        "time": 1779955107.651804
+        "scene_time": 99.906595,
+        "time": 1780023261.974588
       },
       "entered_influence": true,
-      "influence_threshold": 4.0,
-      "min_distance_xy": 0.5395406451362119
+      "influence_threshold": 3.95,
+      "min_distance_xy": 2.048303823386805
     },
     "5": {
       "closest": {
-        "distance_3d": 0.6633736413281728,
-        "distance_xy": 0.6633727992313215,
-        "drone_world_x": 11.663134,
-        "drone_world_y": 7.69427,
-        "drone_z": -3.001057,
-        "obstacle_x": 11.0,
-        "obstacle_y": 7.676472,
+        "distance_3d": 1.6575085133588294,
+        "distance_xy": 1.656368475198679,
+        "drone_world_x": 24.753778,
+        "drone_world_y": 7.801247,
+        "drone_z": -3.061465,
+        "obstacle_x": 26.208474,
+        "obstacle_y": 8.593343,
         "obstacle_z": -3.0,
-        "scene_time": 88.084969,
-        "time": 1779955109.318479
+        "scene_time": 101.926176,
+        "time": 1780023264.043516
       },
       "entered_influence": true,
-      "influence_threshold": 4.0,
-      "min_distance_xy": 0.6633727992313215
+      "influence_threshold": 3.95,
+      "min_distance_xy": 1.656368475198679
     }
   },
   "input_files": {
@@ -497,17 +497,17 @@
     "obstacles_csv": "/home/lililab/ws_xtd2/logs/algorithm_eval_tmp/medium_current/obstacles_ros.csv"
   },
   "obstacle_summary": {
-    "all_obstacle_rows": 14350,
+    "all_obstacle_rows": 21400,
     "first_scene_time": 0.0,
-    "last_scene_time": 100.930068,
+    "last_scene_time": 159.738814,
     "name": "crossing_ball_left",
-    "named_dynamic_rows": 861,
-    "speed_avg": 0.9591753892981453,
-    "speed_max": 1.3500006165350444,
+    "named_dynamic_rows": 1284,
+    "speed_avg": 0.9890186900226113,
+    "speed_max": 1.3500006281724466,
     "speed_min": 0.0,
     "x_range": [
       11.0,
-      26.499998
+      26.5
     ],
     "y_range": [
       -12.0,
@@ -515,9 +515,9 @@
     ]
   },
   "row_counts": {
-    "avoid_cmds": 11865,
-    "drones": 8905,
-    "obstacles": 14350
+    "avoid_cmds": 18000,
+    "drones": 13470,
+    "obstacles": 21400
   },
   "run_dir": "/home/lililab/ws_xtd2/logs/algorithm_eval_tmp/medium_current"
 }

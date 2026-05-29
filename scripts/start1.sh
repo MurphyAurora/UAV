@@ -41,6 +41,17 @@ GZ_WORLD=${GZ_WORLD:-default}
 AUTO_ARM_OFFBOARD=${AUTO_ARM_OFFBOARD:-1}
 WARMUP_SEC=${WARMUP_SEC:-25}
 TAKEOFF_Z=${TAKEOFF_Z:--2.0}
+USER_SET_MISSION_Z=${MISSION_Z+x}
+USER_SET_DYNAMIC_OBS_TARGET_X=${DYNAMIC_OBS_TARGET_X+x}
+USER_SET_DYNAMIC_OBS_TARGET_Y_BASE=${DYNAMIC_OBS_TARGET_Y_BASE+x}
+USER_SET_DYNAMIC_OBS_TARGET_Y_SPACING=${DYNAMIC_OBS_TARGET_Y_SPACING+x}
+USER_SET_DYNAMIC_OBS_WALL_X=${DYNAMIC_OBS_WALL_X+x}
+USER_SET_DYNAMIC_OBS_WALL_Y=${DYNAMIC_OBS_WALL_Y+x}
+USER_SET_DYNAMIC_OBS_WALL_Z=${DYNAMIC_OBS_WALL_Z+x}
+USER_SET_DYNAMIC_OBS_WALL_LENGTH=${DYNAMIC_OBS_WALL_LENGTH+x}
+USER_SET_DYNAMIC_OBS_WALL_THICKNESS=${DYNAMIC_OBS_WALL_THICKNESS+x}
+USER_SET_DYNAMIC_OBS_WALL_HEIGHT=${DYNAMIC_OBS_WALL_HEIGHT+x}
+USER_SET_DYNAMIC_OBS_WALL_SEGMENT_SPACING=${DYNAMIC_OBS_WALL_SEGMENT_SPACING+x}
 MISSION_Z=${MISSION_Z:--3.0}
 ARM_TO_OFFBOARD_DELAY=${ARM_TO_OFFBOARD_DELAY:-0.8}
 INTER_DRONE_GAP=${INTER_DRONE_GAP:-0.2}
@@ -97,7 +108,51 @@ DYNAMIC_OBS_TARGET_X=${DYNAMIC_OBS_TARGET_X:-30.0}
 DYNAMIC_OBS_TARGET_MARGIN_Y=${DYNAMIC_OBS_TARGET_MARGIN_Y:-1.2}
 DYNAMIC_OBS_TARGET_Y_BASE=${DYNAMIC_OBS_TARGET_Y_BASE:-$(awk "BEGIN{printf \"%.2f\", ${DYNAMIC_OBS_WALL_Y} + 25.0}")}
 DYNAMIC_OBS_TARGET_Y_SPACING=${DYNAMIC_OBS_TARGET_Y_SPACING:-1.8}
-if [ -f "${OBSTACLE_CONFIG/#\~/$HOME}" ]; then
+if [ "${DYNAMIC_OBS_MODE}" = "scene" ] && [ -f "${DYNAMIC_OBS_SCENE_CONFIG/#\~/$HOME}" ]; then
+  eval "$(python3 - "${DYNAMIC_OBS_SCENE_CONFIG/#\~/$HOME}" <<'PY'
+import sys
+import yaml
+
+path = sys.argv[1]
+with open(path, 'r', encoding='utf-8') as f:
+    cfg = yaml.safe_load(f) or {}
+
+target = cfg.get('target') or {}
+swarm = cfg.get('swarm') or {}
+walls = ((cfg.get('static_obstacles') or {}).get('walls') or [])
+wall = walls[0] if walls else {}
+
+def emit(name, value):
+    if value is None:
+        return
+    print(f'{name}="{value}"')
+
+emit('SCENE_TARGET_X', target.get('x'))
+emit('SCENE_TARGET_Y', target.get('y'))
+emit('SCENE_TARGET_Z', target.get('z'))
+emit('SCENE_TARGET_Y_SPACING', swarm.get('y_spacing') or target.get('y_spacing'))
+emit('SCENE_WALL_X', wall.get('x'))
+emit('SCENE_WALL_Y', wall.get('y'))
+emit('SCENE_WALL_Z', wall.get('z'))
+emit('SCENE_WALL_LENGTH', wall.get('length'))
+emit('SCENE_WALL_THICKNESS', wall.get('thickness'))
+emit('SCENE_WALL_HEIGHT', wall.get('height'))
+emit('SCENE_WALL_SEGMENT_SPACING', wall.get('segment_spacing'))
+PY
+)"
+  [ -z "${USER_SET_DYNAMIC_OBS_TARGET_X}" ] && [ -n "${SCENE_TARGET_X:-}" ] && DYNAMIC_OBS_TARGET_X="${SCENE_TARGET_X}"
+  [ -z "${USER_SET_DYNAMIC_OBS_TARGET_Y_BASE}" ] && [ -n "${SCENE_TARGET_Y:-}" ] && DYNAMIC_OBS_TARGET_Y_BASE="${SCENE_TARGET_Y}"
+  [ -z "${USER_SET_MISSION_Z}" ] && [ -n "${SCENE_TARGET_Z:-}" ] && MISSION_Z="${SCENE_TARGET_Z}"
+  [ -z "${USER_SET_DYNAMIC_OBS_TARGET_Y_SPACING}" ] && [ -n "${SCENE_TARGET_Y_SPACING:-}" ] && DYNAMIC_OBS_TARGET_Y_SPACING="${SCENE_TARGET_Y_SPACING}"
+  [ -z "${USER_SET_DYNAMIC_OBS_WALL_X}" ] && [ -n "${SCENE_WALL_X:-}" ] && DYNAMIC_OBS_WALL_X="${SCENE_WALL_X}"
+  [ -z "${USER_SET_DYNAMIC_OBS_WALL_Y}" ] && [ -n "${SCENE_WALL_Y:-}" ] && DYNAMIC_OBS_WALL_Y="${SCENE_WALL_Y}"
+  [ -z "${USER_SET_DYNAMIC_OBS_WALL_Z}" ] && [ -n "${SCENE_WALL_Z:-}" ] && DYNAMIC_OBS_WALL_Z="${SCENE_WALL_Z}"
+  [ -z "${USER_SET_DYNAMIC_OBS_WALL_LENGTH}" ] && [ -n "${SCENE_WALL_LENGTH:-}" ] && DYNAMIC_OBS_WALL_LENGTH="${SCENE_WALL_LENGTH}"
+  [ -z "${USER_SET_DYNAMIC_OBS_WALL_THICKNESS}" ] && [ -n "${SCENE_WALL_THICKNESS:-}" ] && DYNAMIC_OBS_WALL_THICKNESS="${SCENE_WALL_THICKNESS}"
+  [ -z "${USER_SET_DYNAMIC_OBS_WALL_HEIGHT}" ] && [ -n "${SCENE_WALL_HEIGHT:-}" ] && DYNAMIC_OBS_WALL_HEIGHT="${SCENE_WALL_HEIGHT}"
+  [ -z "${USER_SET_DYNAMIC_OBS_WALL_SEGMENT_SPACING}" ] && [ -n "${SCENE_WALL_SEGMENT_SPACING:-}" ] && DYNAMIC_OBS_WALL_SEGMENT_SPACING="${SCENE_WALL_SEGMENT_SPACING}"
+fi
+if [ "${DYNAMIC_OBS_MODE}" != "scene" ] && [ -f "${OBSTACLE_CONFIG/#\~/$HOME}" ]; then
   eval "$(python3 ~/ws_xtd2/scripts/obstacle_config.py --shell "${OBSTACLE_CONFIG}")"
 fi
 START_WALL_CLEARANCE=${START_WALL_CLEARANCE:-8.0}
@@ -126,6 +181,8 @@ export ASTAR_OBS_INFLATION
 export ASTAR_MIN_WAYPOINT_DIST
 export ASTAR_SMOOTH_ENABLE
 export OBSTACLE_CONFIG
+export DYNAMIC_OBS_MODE
+export DYNAMIC_OBS_SCENE_CONFIG
 export VERTICAL_TAKEOFF
 export SECOND_WALL_ENABLE
 export SECOND_WALL_DX
