@@ -5,7 +5,7 @@
 输入：
     ros_run_recorder.py 记录的 drones / obstacles / avoid_cmds 行数据。
 输出：
-    路径长度、任务时间、碰撞次数、最小安全净距、避障成功率、
+    路径长度、任务时间、物理碰撞、安全裕度违规、避障成功率、
     控制平滑度和仿真实时率等指标。
 
 这个模块只做离线分析，不影响 ROS 记录器和控制算法。
@@ -69,7 +69,21 @@ def _path_metrics(drone_rows):
     return result
 
 
-def _task_metrics(drone_rows, target=None, target_radius=1.0):
+def _target_for_drone(target, drone_id, target_leader_id=None, target_y_spacing=None):
+    tx, ty, tz = target
+    if target_leader_id is None or target_y_spacing is None:
+        return tx, ty, tz
+    return tx, ty + (int(drone_id) - int(target_leader_id)) * float(target_y_spacing), tz
+
+
+def _task_metrics(
+    drone_rows,
+    target=None,
+    target_radius=1.0,
+    target_leader_id=None,
+    target_y_spacing=None,
+    physical_collision_times=None,
+):
     if not drone_rows:
         return {
             'recording_duration_sec': 0.0,
@@ -91,14 +105,25 @@ def _task_metrics(drone_rows, target=None, target_radius=1.0):
         }
 
     tx, ty, tz = target
+    use_formation_slots = target_leader_id is not None and target_y_spacing is not None
+    physical_collision_times = physical_collision_times or {}
     completion = {}
     for drone_id, rows in by_drone.items():
+        slot_x, slot_y, slot_z = _target_for_drone(
+            target,
+            drone_id,
+            target_leader_id=target_leader_id,
+            target_y_spacing=target_y_spacing,
+        )
         hit_time = None
         min_target_distance = None
+        collision_time = physical_collision_times.get(str(drone_id))
         for row in rows:
-            dx = row['world_x'] - tx
-            dy = row['world_y'] - ty
-            dz = row['z'] - tz
+            if collision_time is not None and row['time'] > collision_time:
+                break
+            dx = row['world_x'] - slot_x
+            dy = row['world_y'] - slot_y
+            dz = row['z'] - slot_z
             dist = math.sqrt(dx * dx + dy * dy + dz * dz)
             min_target_distance = dist if min_target_distance is None else min(min_target_distance, dist)
             if dist <= target_radius and hit_time is None:
@@ -107,12 +132,28 @@ def _task_metrics(drone_rows, target=None, target_radius=1.0):
             'completed': hit_time is not None,
             'completion_time_sec': hit_time,
             'min_target_distance': min_target_distance if min_target_distance is not None else 0.0,
+            'invalid_after_physical_collision': collision_time is not None,
+            'first_physical_collision_time': collision_time,
+            'target_slot': {
+                'x': slot_x,
+                'y': slot_y,
+                'z': slot_z,
+                'radius': target_radius,
+            },
         }
     completed = [item for item in completion.values() if item['completed']]
     return {
         'recording_duration_sec': end_time - start_time,
         'target_configured': True,
-        'target': {'x': tx, 'y': ty, 'z': tz, 'radius': target_radius},
+        'target': {
+            'x': tx,
+            'y': ty,
+            'z': tz,
+            'radius': target_radius,
+            'mode': 'formation_slots' if use_formation_slots else 'single_point',
+            'leader_id': target_leader_id,
+            'y_spacing': target_y_spacing,
+        },
         'completion_rate': len(completed) / max(1, len(completion)),
         'mission_time_sec': max(item['completion_time_sec'] for item in completed) if len(completed) == len(completion) else None,
         'completion_by_drone': completion,
@@ -139,20 +180,30 @@ def _safety_metrics(
     by_drone = group_sorted(drone_rows, 'drone_id')
     result = {}
     global_min_clearance = None
+    global_min_physical_clearance = None
     total_collision_samples = 0
+    total_safety_violation_samples = 0
     total_near_miss_samples = 0
     total_influence_samples = 0
 
     for drone_id, rows in by_drone.items():
         min_clearance = None
+        min_physical_clearance = None
         min_distance_3d = None
         min_distance_xy = None
+        physical_collision_samples = 0
         collision_samples = 0
+        safety_violation_samples = 0
         near_miss_samples = 0
         influence_samples = 0
         closest = None
+        prev_physical_collision = False
         prev_collision = False
+        prev_safety_violation = False
+        physical_collision_events = 0
         collision_events = 0
+        safety_violation_events = 0
+        first_physical_collision_time = None
         for row in rows:
             candidates = _nearest_obstacle_group(named_obstacles, obstacle_times, row['time'])
             if not candidates:
@@ -164,27 +215,48 @@ def _safety_metrics(
                 dz = row['z'] - obs['z']
                 dist_xy = math.hypot(dx, dy)
                 dist_3d = math.sqrt(dx * dx + dy * dy + dz * dz)
-                clearance = dist_3d - (drone_radius + obs['radius'] + safe_margin)
-                item = (clearance, dist_3d, dist_xy, obs)
+                physical_clearance = dist_3d - (drone_radius + obs['radius'])
+                clearance = physical_clearance - safe_margin
+                item = (clearance, physical_clearance, dist_3d, dist_xy, obs)
                 if best is None or item[0] < best[0]:
                     best = item
             if best is None:
                 continue
-            clearance, dist_3d, dist_xy, obs = best
+            clearance, physical_clearance, dist_3d, dist_xy, obs = best
             min_clearance = clearance if min_clearance is None else min(min_clearance, clearance)
+            min_physical_clearance = (
+                physical_clearance if min_physical_clearance is None else min(min_physical_clearance, physical_clearance)
+            )
             min_distance_3d = dist_3d if min_distance_3d is None else min(min_distance_3d, dist_3d)
             min_distance_xy = dist_xy if min_distance_xy is None else min(min_distance_xy, dist_xy)
             global_min_clearance = clearance if global_min_clearance is None else min(global_min_clearance, clearance)
-            in_collision = clearance <= 0.0
-            if in_collision:
+            global_min_physical_clearance = (
+                physical_clearance
+                if global_min_physical_clearance is None
+                else min(global_min_physical_clearance, physical_clearance)
+            )
+            in_physical_collision = physical_clearance <= 0.0
+            in_safety_violation = clearance <= 0.0
+            if in_physical_collision:
+                physical_collision_samples += 1
+                if not prev_physical_collision:
+                    physical_collision_events += 1
+                    if first_physical_collision_time is None:
+                        first_physical_collision_time = row['time']
+            if in_safety_violation:
+                safety_violation_samples += 1
                 collision_samples += 1
+                if not prev_safety_violation:
+                    safety_violation_events += 1
                 if not prev_collision:
                     collision_events += 1
             if clearance <= near_miss_margin:
                 near_miss_samples += 1
             if clearance <= influence_radius:
                 influence_samples += 1
-            prev_collision = in_collision
+            prev_physical_collision = in_physical_collision
+            prev_safety_violation = in_safety_violation
+            prev_collision = in_safety_violation
             if closest is None or clearance < closest['safety_clearance']:
                 closest = {
                     'time': row['time'],
@@ -199,21 +271,32 @@ def _safety_metrics(
                     'obstacle_radius': obs['radius'],
                     'distance_xy': dist_xy,
                     'distance_3d': dist_3d,
+                    'physical_clearance': physical_clearance,
                     'safety_clearance': clearance,
                 }
-        total_collision_samples += collision_samples
+        total_collision_samples += physical_collision_samples
+        total_safety_violation_samples += safety_violation_samples
         total_near_miss_samples += near_miss_samples
         total_influence_samples += influence_samples
         result[str(drone_id)] = {
             'samples': len(rows),
             'min_distance_xy': min_distance_xy,
             'min_distance_3d': min_distance_3d,
+            'min_physical_clearance': min_physical_clearance,
             'min_safety_clearance': min_clearance,
-            'collision_samples': collision_samples,
-            'collision_events': collision_events,
+            'physical_collision_samples': physical_collision_samples,
+            'physical_collision_events': physical_collision_events,
+            'first_physical_collision_time': first_physical_collision_time,
+            'safety_violation_samples': safety_violation_samples,
+            'safety_violation_events': safety_violation_events,
+            # Backward-compatible aliases. In new reports prefer physical_collision_* and safety_violation_*.
+            'collision_samples': physical_collision_samples,
+            'collision_events': physical_collision_events,
             'near_miss_samples': near_miss_samples,
             'influence_samples': influence_samples,
-            'collision_rate_samples': collision_samples / max(1, len(rows)),
+            'physical_collision_rate_samples': physical_collision_samples / max(1, len(rows)),
+            'safety_violation_rate_samples': safety_violation_samples / max(1, len(rows)),
+            'collision_rate_samples': physical_collision_samples / max(1, len(rows)),
             'near_miss_rate_samples': near_miss_samples / max(1, len(rows)),
             'closest': closest,
         }
@@ -223,9 +306,19 @@ def _safety_metrics(
         'safe_margin': safe_margin,
         'near_miss_margin': near_miss_margin,
         'influence_radius': influence_radius,
+        'physical_collision_threshold_note': 'physical_collision when distance_3d <= drone_radius + obstacle_radius',
+        'safety_violation_threshold_note': 'safety_violation when distance_3d <= drone_radius + obstacle_radius + safe_margin',
+        'global_min_physical_clearance': global_min_physical_clearance,
         'global_min_safety_clearance': global_min_clearance,
+        'physical_collision_samples_total': total_collision_samples,
+        'physical_collision_events_total': sum(item['physical_collision_events'] for item in result.values()),
+        'physical_collision_drone_count': sum(1 for item in result.values() if item['physical_collision_events'] > 0),
+        'safety_violation_samples_total': total_safety_violation_samples,
+        'safety_violation_events_total': sum(item['safety_violation_events'] for item in result.values()),
+        'safety_violation_drone_count': sum(1 for item in result.values() if item['safety_violation_events'] > 0),
+        # Backward-compatible aliases. These now mean physical collision.
         'collision_samples_total': total_collision_samples,
-        'collision_events_total': sum(item['collision_events'] for item in result.values()),
+        'collision_events_total': sum(item['physical_collision_events'] for item in result.values()),
         'near_miss_samples_total': total_near_miss_samples,
         'influence_samples_total': total_influence_samples,
         'by_drone': result,
@@ -300,20 +393,24 @@ def _avoid_success_metrics(safety_metrics, smoothness_by_drone):
     successful = 0
     for drone_id, safety in safety_metrics['by_drone'].items():
         required_avoid = safety['influence_samples'] > 0
-        has_collision = safety['collision_events'] > 0
+        has_physical_collision = safety['physical_collision_events'] > 0
+        has_safety_violation = safety['safety_violation_events'] > 0
         has_nonzero_cmd = smoothness_by_drone.get(drone_id, {}).get('nonzero_rows', 0) > 0
-        success = (not required_avoid) or (has_nonzero_cmd and not has_collision)
+        success = (not required_avoid) or (has_nonzero_cmd and not has_safety_violation)
         if required_avoid:
             required += 1
             successful += 1 if success else 0
         by_drone[drone_id] = {
             'required_avoidance': required_avoid,
             'has_nonzero_avoid_cmd': has_nonzero_cmd,
-            'collision_free': not has_collision,
+            'physical_collision_free': not has_physical_collision,
+            'safety_violation_free': not has_safety_violation,
+            # Backward-compatible alias. Prefer physical_collision_free / safety_violation_free.
+            'collision_free': not has_physical_collision,
             'avoidance_success': success,
         }
     return {
-        'definition': 'For drones entering the obstacle influence zone, success requires nonzero avoid command and zero collision events.',
+        'definition': 'For drones entering the obstacle influence zone, success requires nonzero avoid command and zero safety_violation events.',
         'required_drone_count': required,
         'successful_drone_count': successful,
         'avoidance_success_rate': successful / required if required > 0 else None,
@@ -371,6 +468,8 @@ def algorithm_metrics(
     near_miss_margin,
     target=None,
     target_radius=1.0,
+    target_leader_id=None,
+    target_y_spacing=None,
 ):
     parsed_drones = parse_drone_rows(drone_rows)
     parsed_avoid = parse_avoid_rows(avoid_rows)
@@ -385,15 +484,29 @@ def algorithm_metrics(
     smoothness = _control_smoothness(parsed_avoid, nonzero_threshold=nonzero_threshold)
     avoid_success = _avoid_success_metrics(safety, smoothness)
     path = _path_metrics(parsed_drones)
-    task = _task_metrics(parsed_drones, target=target, target_radius=target_radius)
+    physical_collision_times = {
+        drone_id: item.get('first_physical_collision_time')
+        for drone_id, item in safety.get('by_drone', {}).items()
+        if item.get('first_physical_collision_time') is not None
+    }
+    task = _task_metrics(
+        parsed_drones,
+        target=target,
+        target_radius=target_radius,
+        target_leader_id=target_leader_id,
+        target_y_spacing=target_y_spacing,
+        physical_collision_times=physical_collision_times,
+    )
     rtf = _real_time_factor(obstacle_rows)
     return {
         'definitions': {
             'path_length': 'Sum of consecutive drone world-position distances.',
-            'task_time': 'If target is configured, max completion time among drones; otherwise recording duration.',
-            'collision': '3D distance <= drone_radius + obstacle_radius + safe_margin.',
-            'min_safety_distance': 'Minimum clearance after subtracting drone radius, obstacle radius, and safe margin.',
-            'avoidance_success_rate': 'Among drones entering influence zone, fraction with nonzero avoid command and no collision.',
+            'task_time': 'If target is configured, max completion time among non-collided drones; otherwise recording duration.',
+            'physical_collision': '3D distance <= drone_radius + obstacle_radius. A physical collision invalidates later task completion.',
+            'safety_violation': '3D distance <= drone_radius + obstacle_radius + safe_margin.',
+            'min_physical_clearance': 'Minimum clearance after subtracting drone radius and obstacle radius.',
+            'min_safety_clearance': 'Minimum clearance after subtracting drone radius, obstacle radius, and safe margin.',
+            'avoidance_success_rate': 'Among drones entering influence zone, fraction with nonzero avoid command and no safety_violation.',
             'control_smoothness': 'RMS/max changes of avoid_cmd velocity, acceleration-like delta/dt, and jerk-like difference.',
             'real_time_factor': 'scene_time duration / wall-clock recording duration from obstacle messages.',
         },
@@ -429,10 +542,18 @@ def write_algorithm_metrics_csv(result, output_csv):
         'path_length_3d_total': sum(path_lengths),
         'path_length_xy_mean': mean(path_lengths_xy),
         'path_length_xy_total': sum(path_lengths_xy),
+        'physical_collision_events_total': safety.get('physical_collision_events_total'),
+        'physical_collision_samples_total': safety.get('physical_collision_samples_total'),
+        'physical_collision_drone_count': safety.get('physical_collision_drone_count'),
+        'global_min_physical_clearance': safety.get('global_min_physical_clearance'),
+        'safety_violation_events_total': safety.get('safety_violation_events_total'),
+        'safety_violation_samples_total': safety.get('safety_violation_samples_total'),
+        'safety_violation_drone_count': safety.get('safety_violation_drone_count'),
+        'global_min_safety_clearance': safety.get('global_min_safety_clearance'),
+        # Backward-compatible aliases. These now refer to physical collision.
         'collision_events_total': safety.get('collision_events_total'),
         'collision_samples_total': safety.get('collision_samples_total'),
         'near_miss_samples_total': safety.get('near_miss_samples_total'),
-        'global_min_safety_clearance': safety.get('global_min_safety_clearance'),
         'avoidance_success_rate': avoid.get('avoidance_success_rate'),
         'required_avoidance_drone_count': avoid.get('required_drone_count'),
         'successful_avoidance_drone_count': avoid.get('successful_drone_count'),

@@ -260,6 +260,63 @@ def _positions_at_obstacle_avoid_times(path_rows, event_rows, obstacles, influen
     return xs, ys, speeds
 
 
+def _physical_collision_events(drones_by_id, obstacles, drone_radius):
+    if not drones_by_id or not obstacles:
+        return {}
+    obs_times = [row['time'] for row in obstacles]
+    events = {}
+    for drone_id, rows in drones_by_id.items():
+        prev_collision = False
+        drone_events = []
+        for row in rows:
+            obs = _nearest_by_time(obstacles, obs_times, row['time'])
+            if obs is None:
+                continue
+            dx = row['x'] - obs['x']
+            dy = row['y'] - obs['y']
+            dz = row['z'] - obs.get('z', 0.0)
+            dist_3d = math.sqrt(dx * dx + dy * dy + dz * dz)
+            threshold = float(drone_radius) + obs.get('radius', 0.0)
+            in_collision = dist_3d <= threshold
+            if in_collision and not prev_collision:
+                drone_events.append(
+                    {
+                        'drone': row,
+                        'obstacle': obs,
+                        'distance_3d': dist_3d,
+                        'threshold': threshold,
+                    }
+                )
+            prev_collision = in_collision
+        if drone_events:
+            events[drone_id] = drone_events
+    return events
+
+
+def _truncate_paths_after_collision(drones_by_id, physical_collisions):
+    if not physical_collisions:
+        return drones_by_id
+    truncated = {}
+    for drone_id, rows in drones_by_id.items():
+        events = physical_collisions.get(drone_id) or []
+        if not events:
+            truncated[drone_id] = rows
+            continue
+        first_collision_t = min(event['drone']['time'] for event in events)
+        kept = [row for row in rows if row['time'] <= first_collision_t + 1e-9]
+        truncated[drone_id] = kept or rows[:1]
+    return truncated
+
+
+def _first_collision_by_drone(physical_collisions):
+    first = {}
+    for drone_id, events in physical_collisions.items():
+        if not events:
+            continue
+        first[drone_id] = [min(events, key=lambda event: event['drone']['time'])]
+    return first
+
+
 def _set_limits(ax, drones_by_id, obstacles):
     xs = []
     ys = []
@@ -341,6 +398,8 @@ def plot_run(
     scene_time_max=None,
     target=None,
     target_radius=1.5,
+    drone_radius=0.35,
+    truncate_after_collision=True,
 ):
     run_dir, drone_rows, obstacle_rows, avoid_rows = _load_run(run_dir)
     window_start_t, window_end_t, obstacle_rows = _window_by_obstacle_scene_time(
@@ -354,8 +413,15 @@ def plot_run(
     drones_by_id = _group_drones(drone_rows)
     obstacles = _named_obstacles(obstacle_rows)
     avoid_by_id = _avoid_nonzero_by_drone(avoid_rows, nonzero_threshold)
-    closest = _closest_points(drones_by_id, obstacles)
-    closest_by_obstacle = _closest_points_by_obstacle(drones_by_id, obstacles)
+    physical_collisions = _physical_collision_events(drones_by_id, obstacles, drone_radius)
+    first_physical_collisions = _first_collision_by_drone(physical_collisions)
+    plot_drones_by_id = (
+        _truncate_paths_after_collision(drones_by_id, first_physical_collisions)
+        if truncate_after_collision
+        else drones_by_id
+    )
+    closest = _closest_points(plot_drones_by_id, obstacles)
+    closest_by_obstacle = _closest_points_by_obstacle(plot_drones_by_id, obstacles)
 
     fig, ax = plt.subplots(figsize=(11, 8.5), dpi=dpi)
     view_title = {
@@ -401,8 +467,8 @@ def plot_run(
                 ax.scatter([obs_x[-1]], [obs_y[-1]], marker='x', s=64, color=color, zorder=7)
                 ax.text(obs_x[0], obs_y[0] + 0.45, obs_name, fontsize=8, color=color, clip_on=True)
 
-    for idx, drone_id in enumerate(sorted(drones_by_id)):
-        rows = drones_by_id[drone_id]
+    for idx, drone_id in enumerate(sorted(plot_drones_by_id)):
+        rows = plot_drones_by_id[drone_id]
         color = COLORS[idx % len(COLORS)]
         xs = [row['x'] for row in rows]
         ys = [row['y'] for row in rows]
@@ -508,8 +574,37 @@ def plot_run(
         )
         ax.add_patch(circle)
 
+    if first_physical_collisions:
+        first_label = True
+        for drone_id, events in first_physical_collisions.items():
+            color = COLORS[(drone_id - 1) % len(COLORS)]
+            for event in events:
+                drone = event['drone']
+                obs = event['obstacle']
+                ax.scatter(
+                    [drone['x']],
+                    [drone['y']],
+                    marker='X',
+                    s=48 if view == 'paper' else 38,
+                    color='#e60000',
+                    edgecolor='white',
+                    linewidth=0.45,
+                    zorder=12,
+                    label='physical collision' if first_label else None,
+                )
+                ax.plot(
+                    [drone['x'], obs['x']],
+                    [drone['y'], obs['y']],
+                    linestyle='-',
+                    linewidth=0.85,
+                    color='#e60000',
+                    alpha=0.72,
+                    zorder=11,
+                )
+                first_label = False
+
     if view == 'overview':
-        _set_limits(ax, drones_by_id, obstacles)
+        _set_limits(ax, plot_drones_by_id, obstacles)
         if show_target:
             x0, x1 = ax.get_xlim()
             y0, y1 = ax.get_ylim()
@@ -517,7 +612,7 @@ def plot_run(
             ax.set_xlim(min(x0, tx - 2.0), max(x1, tx + 2.0))
             ax.set_ylim(min(y0, ty - 2.0), max(y1, ty + 2.0))
     elif view == 'paper':
-        _set_limits(ax, drones_by_id, obstacles)
+        _set_limits(ax, plot_drones_by_id, obstacles)
         if show_target:
             x0, x1 = ax.get_xlim()
             y0, y1 = ax.get_ylim()
@@ -609,6 +704,8 @@ def main():
     parser.add_argument('--target-y', type=float, default=None)
     parser.add_argument('--target-z', type=float, default=None)
     parser.add_argument('--target-radius', type=float, default=1.5)
+    parser.add_argument('--drone-radius', type=float, default=0.35)
+    parser.add_argument('--truncate-after-collision', type=int, default=1)
     args = parser.parse_args()
 
     target = None
@@ -638,6 +735,8 @@ def main():
             scene_time_max=args.scene_time_max,
             target=target,
             target_radius=args.target_radius,
+            drone_radius=args.drone_radius,
+            truncate_after_collision=(int(args.truncate_after_collision) == 1),
         )
         print(f'plot={path}')
         last_counts = (drone_count, obstacle_count, avoid_count, obstacle_avoid_count)

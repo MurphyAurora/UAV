@@ -59,6 +59,8 @@ def analyze_run(
     near_miss_margin=0.5,
     target=None,
     target_radius=1.0,
+    target_leader_id=None,
+    target_y_spacing=None,
 ):
     run_dir = os.path.abspath(os.path.expanduser(run_dir))
     drones_path = os.path.join(run_dir, 'drones.csv')
@@ -206,6 +208,8 @@ def analyze_run(
         near_miss_margin=near_miss_margin,
         target=target,
         target_radius=target_radius,
+        target_leader_id=target_leader_id,
+        target_y_spacing=target_y_spacing,
     )
     result = {
         'run_dir': run_dir,
@@ -301,7 +305,9 @@ def print_human(result):
     print(f'  recording_duration_sec={task.get("recording_duration_sec", 0.0):.3f}')
     print(f'  mission_time_sec={task.get("mission_time_sec")}')
     print(f'  completion_rate={task.get("completion_rate")}')
-    print(f'  collision_events_total={safety.get("collision_events_total", 0)}')
+    print(f'  physical_collision_events_total={safety.get("physical_collision_events_total", 0)}')
+    print(f'  safety_violation_events_total={safety.get("safety_violation_events_total", 0)}')
+    print(f'  global_min_physical_clearance={safety.get("global_min_physical_clearance")}')
     print(f'  global_min_safety_clearance={safety.get("global_min_safety_clearance")}')
     print(f'  avoidance_success_rate={avoid_success.get("avoidance_success_rate")}')
     print(f'  real_time_factor={rtf.get("real_time_factor")}')
@@ -323,6 +329,8 @@ def main():
     parser.add_argument('--target-y', type=float, default=None)
     parser.add_argument('--target-z', type=float, default=None)
     parser.add_argument('--target-radius', type=float, default=1.0)
+    parser.add_argument('--target-leader-id', type=int, default=None)
+    parser.add_argument('--target-y-spacing', type=float, default=None)
     args = parser.parse_args()
 
     center = None
@@ -342,6 +350,8 @@ def main():
         near_miss_margin=args.near_miss_margin,
         target=target,
         target_radius=args.target_radius,
+        target_leader_id=args.target_leader_id,
+        target_y_spacing=args.target_y_spacing,
     )
     print_human(result)
 

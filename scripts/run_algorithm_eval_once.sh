@@ -34,6 +34,8 @@ TARGET_X="${TARGET_X:-}"
 TARGET_Y="${TARGET_Y:-}"
 TARGET_Z="${TARGET_Z:-}"
 TARGET_RADIUS="${TARGET_RADIUS:-1.5}"
+TARGET_LEADER_ID="${TARGET_LEADER_ID:-}"
+TARGET_Y_SPACING="${TARGET_Y_SPACING:-}"
 
 if [[ "${OVERWRITE}" == "1" ]]; then
   case "${RESULT_DIR}" in
@@ -79,6 +81,12 @@ if [[ -n "${TARGET_X}" && -n "${TARGET_Y}" && -n "${TARGET_Z}" ]]; then
     --target-z "${TARGET_Z}"
     --target-radius "${TARGET_RADIUS}"
   )
+  if [[ -n "${TARGET_LEADER_ID}" && -n "${TARGET_Y_SPACING}" ]]; then
+    ANALYZE_CMD+=(
+      --target-leader-id "${TARGET_LEADER_ID}"
+      --target-y-spacing "${TARGET_Y_SPACING}"
+    )
+  fi
 fi
 
 "${ANALYZE_CMD[@]}"
@@ -88,6 +96,7 @@ PLOT_CMD=(
   --run-dir "${RUN_DIR}"
   --output-dir "${RESULT_DIR}/plots"
   --influence-radius "${INFLUENCE_RADIUS}"
+  --drone-radius "${DRONE_RADIUS}"
   --plot-set standard
 )
 

@@ -24,8 +24,24 @@ class FixedPointMission(Node):
         self.obstacles = None
         self._last_metric_log_t = 0.0
         self._last_failsafe_log_t = 0.0
+        self._last_consensus_log_t = 0.0
+        self._last_rear_safety_log_t = 0.0
         self.metrics_csv_path = metrics_csv_path
         self.metrics_file = None
+        self.formation_estimator = os.environ.get('FORMATION_ESTIMATOR', 'centralized').strip().lower()
+        self.consensus_alpha = self._finite_float(os.environ.get('CONSENSUS_ALPHA', 0.18), 0.18)
+        self.consensus_beta = self._finite_float(os.environ.get('CONSENSUS_BETA', 0.35), 0.35)
+        self.consensus_correction_gain = self._finite_float(os.environ.get('CONSENSUS_CORRECTION_GAIN', 0.35), 0.35)
+        self.consensus_correction_limit = self._finite_float(os.environ.get('CONSENSUS_CORRECTION_LIMIT', 0.45), 0.45)
+        self.consensus_topology = os.environ.get('CONSENSUS_TOPOLOGY', 'chain').strip().lower()
+        self.consensus_neighbors = self._build_consensus_neighbors()
+        self.consensus_estimates = {}
+        self.rear_safety_enable = int(self._finite_float(os.environ.get('REAR_SAFETY_ENABLE', 1), 1)) != 0
+        self.rear_safe_dist = self._finite_float(os.environ.get('REAR_SAFE_DIST', 1.35), 1.35)
+        self.rear_lateral_window = self._finite_float(os.environ.get('REAR_LATERAL_WINDOW', 0.9), 0.9)
+        self.rear_brake_gain = self._finite_float(os.environ.get('REAR_BRAKE_GAIN', 0.65), 0.65)
+        self.virtual_lag_pause_limit = self._finite_float(os.environ.get('VIRTUAL_LAG_PAUSE_LIMIT', 2.1), 2.1)
+        self.virtual_lag_resume_limit = self._finite_float(os.environ.get('VIRTUAL_LAG_RESUME_LIMIT', 1.5), 1.5)
         
         for i in range(1, num_drones + 1):
             pub = self.create_publisher(
@@ -46,6 +62,22 @@ class FixedPointMission(Node):
         
         time.sleep(0.5)
         self.get_logger().info(f"初始化{num_drones}架无人机控制器，领航机=无人机{leader_id}")
+        if self._use_consensus_estimator():
+            self.get_logger().info(
+                f"半分布式一致性估计启用: topology={self.consensus_topology}, "
+                f"alpha={self.consensus_alpha:.2f}, beta={self.consensus_beta:.2f}, "
+                f"corr_gain={self.consensus_correction_gain:.2f}, corr_limit={self.consensus_correction_limit:.2f}, "
+                f"neighbors={self.consensus_neighbors}"
+            )
+        if self.rear_safety_enable:
+            self.get_logger().info(
+                f"后向安全限速启用: safe_dist={self.rear_safe_dist:.2f}, "
+                f"lateral_window={self.rear_lateral_window:.2f}, brake_gain={self.rear_brake_gain:.2f}"
+            )
+        self.get_logger().info(
+            f"虚拟领航滞回: pause>{self.virtual_lag_pause_limit:.2f}m, "
+            f"resume<{self.virtual_lag_resume_limit:.2f}m"
+        )
 
     def _open_metrics_file(self):
         if not self.metrics_csv_path:
@@ -75,6 +107,8 @@ class FixedPointMission(Node):
                     'vx': self._finite_float(s.get('vx', 0.0)),
                     'vy': self._finite_float(s.get('vy', 0.0)),
                     'vz': self._finite_float(s.get('vz', 0.0)),
+                    'world_x': self._finite_float(s.get('world_x', s.get('x', 0.0))),
+                    'world_y': self._finite_float(s.get('world_y', s.get('y', 0.0))),
                     'heading': self._finite_float(s.get('heading', 0.0)),
                     'stamp': float(s.get('stamp', 0.0)),
                 }
@@ -90,6 +124,68 @@ class FixedPointMission(Node):
         if not math.isfinite(v):
             return default
         return v
+
+    def _use_consensus_estimator(self):
+        return self.formation_estimator in ('consensus', 'semi_distributed', 'semi-distributed')
+
+    def _build_consensus_neighbors(self):
+        raw = os.environ.get('CONSENSUS_NEIGHBORS', '').strip()
+        if raw:
+            parsed = {i: [] for i in range(1, self.num_drones + 1)}
+            try:
+                for item in raw.split(';'):
+                    item = item.strip()
+                    if not item or ':' not in item:
+                        continue
+                    left, right = item.split(':', 1)
+                    drone_id = int(left.strip())
+                    if drone_id < 1 or drone_id > self.num_drones:
+                        continue
+                    neighbors = []
+                    for n in right.split(','):
+                        n = n.strip()
+                        if not n:
+                            continue
+                        neighbor_id = int(n)
+                        if 1 <= neighbor_id <= self.num_drones and neighbor_id != drone_id:
+                            neighbors.append(neighbor_id)
+                    parsed[drone_id] = sorted(set(neighbors))
+                return parsed
+            except Exception:
+                pass
+
+        if self.consensus_topology == 'full':
+            return {
+                i: [j for j in range(1, self.num_drones + 1) if j != i]
+                for i in range(1, self.num_drones + 1)
+            }
+        if self.consensus_topology == 'ring' and self.num_drones > 2:
+            return {
+                i: sorted({
+                    self.num_drones if i == 1 else i - 1,
+                    1 if i == self.num_drones else i + 1,
+                })
+                for i in range(1, self.num_drones + 1)
+            }
+        if self.consensus_topology == 'star':
+            center_id = self.leader_id
+            return {
+                i: (
+                    [j for j in range(1, self.num_drones + 1) if j != i]
+                    if i == center_id else [center_id]
+                )
+                for i in range(1, self.num_drones + 1)
+            }
+
+        neighbors = {}
+        for i in range(1, self.num_drones + 1):
+            arr = []
+            if i > 1:
+                arr.append(i - 1)
+            if i < self.num_drones:
+                arr.append(i + 1)
+            neighbors[i] = arr
+        return neighbors
 
     def _state_fresh(self, st, max_age_sec=1.0):
         stamp = float(st.get('stamp', 0.0))
@@ -125,6 +221,12 @@ class FixedPointMission(Node):
             self._finite_float(st.get('vz', 0.0)),
         )
 
+    def _state_world_xy(self, st):
+        return (
+            self._finite_float(st.get('world_x', st.get('x', 0.0))),
+            self._finite_float(st.get('world_y', st.get('y', 0.0))),
+        )
+
     def _estimate_virtual_ref_from_states(self, follower_offsets, use_heading_offsets=False, heading=0.0, max_age_sec=1.0):
         centers = []
         for drone_id in range(1, self.num_drones + 1):
@@ -149,6 +251,191 @@ class FixedPointMission(Node):
             sum(p[1] for p in centers) * inv_n,
             sum(p[2] for p in centers) * inv_n,
         )
+
+    def _formation_center_observation(self, drone_id, follower_offsets, use_heading_offsets=False, heading=0.0):
+        st = self.latest_states.get(drone_id)
+        if st is None:
+            return None
+        dx, dy, dz = follower_offsets.get(drone_id, (0.0, 0.0, 0.0))
+        if use_heading_offsets:
+            rdx, rdy = self._rotate_offset_by_heading(dx, dy, heading)
+        else:
+            rdx, rdy = dx, dy
+        return (
+            float(st['x']) - rdx,
+            float(st['y']) - rdy,
+            float(st['z']) - dz,
+        )
+
+    def _update_consensus_estimates(self, follower_offsets, use_heading_offsets=False, heading=0.0, max_age_sec=1.0):
+        observations = {}
+        for drone_id in range(1, self.num_drones + 1):
+            st = self.latest_states.get(drone_id)
+            if st is None or not self._state_fresh(st, max_age_sec=max_age_sec):
+                continue
+            obs = self._formation_center_observation(
+                drone_id,
+                follower_offsets,
+                use_heading_offsets=use_heading_offsets,
+                heading=heading,
+            )
+            if obs is not None:
+                observations[drone_id] = obs
+                if drone_id not in self.consensus_estimates:
+                    self.consensus_estimates[drone_id] = obs
+
+        prev = dict(self.consensus_estimates)
+        next_estimates = {}
+        for drone_id in range(1, self.num_drones + 1):
+            xhat = prev.get(drone_id)
+            if xhat is None:
+                if drone_id in observations:
+                    next_estimates[drone_id] = observations[drone_id]
+                continue
+
+            cx = cy = 0.0
+            neighbor_count = 0
+            for neighbor_id in self.consensus_neighbors.get(drone_id, []):
+                neighbor_hat = prev.get(neighbor_id)
+                if neighbor_hat is None:
+                    continue
+                cx += float(neighbor_hat[0]) - float(xhat[0])
+                cy += float(neighbor_hat[1]) - float(xhat[1])
+                neighbor_count += 1
+            if neighbor_count > 0:
+                inv_n = 1.0 / float(neighbor_count)
+                cx *= inv_n
+                cy *= inv_n
+
+            ox = oy = 0.0
+            oz = 0.0
+            if drone_id in observations:
+                obs = observations[drone_id]
+                ox = float(obs[0]) - float(xhat[0])
+                oy = float(obs[1]) - float(xhat[1])
+                oz = float(obs[2]) - float(xhat[2])
+
+            next_estimates[drone_id] = (
+                float(xhat[0]) + self.consensus_alpha * cx + self.consensus_beta * ox,
+                float(xhat[1]) + self.consensus_alpha * cy + self.consensus_beta * oy,
+                float(xhat[2]) + self.consensus_beta * oz,
+            )
+
+        self.consensus_estimates.update(next_estimates)
+        return next_estimates
+
+    def _average_xyz(self, xyz_values):
+        values = [v for v in xyz_values if v is not None]
+        if not values:
+            return None
+        inv_n = 1.0 / float(len(values))
+        return (
+            sum(float(v[0]) for v in values) * inv_n,
+            sum(float(v[1]) for v in values) * inv_n,
+            sum(float(v[2]) for v in values) * inv_n,
+        )
+
+    def _advance_consensus_estimates(self, target_xyz, max_speed, dt):
+        prev = dict(self.consensus_estimates)
+        refs = {}
+        ffs = {}
+        for drone_id in range(1, self.num_drones + 1):
+            xhat = prev.get(drone_id)
+            if xhat is None:
+                continue
+            next_xyz, ff = self._advance_virtual_point(xhat, target_xyz, max_speed, dt)
+            self.consensus_estimates[drone_id] = next_xyz
+            refs[drone_id] = next_xyz
+            ffs[drone_id] = ff
+        return refs, ffs
+
+    def _consensus_corrections_xy(self, consensus_refs):
+        if not consensus_refs:
+            return {}
+        avg_ref = self._average_xyz(consensus_refs.values())
+        if avg_ref is None:
+            return {}
+        corrections = {}
+        limit = max(0.0, float(self.consensus_correction_limit))
+        gain = max(0.0, float(self.consensus_correction_gain))
+        for drone_id, xhat in consensus_refs.items():
+            cx = gain * (float(avg_ref[0]) - float(xhat[0]))
+            cy = gain * (float(avg_ref[1]) - float(xhat[1]))
+            norm = math.sqrt(cx * cx + cy * cy)
+            if limit > 0.0 and norm > limit and norm > 1e-6:
+                scale = limit / norm
+                cx *= scale
+                cy *= scale
+            corrections[drone_id] = (cx, cy)
+        return corrections
+
+    def _apply_rear_safety_limit(self, command_vels, direction_xy):
+        if not self.rear_safety_enable or len(command_vels) < 2:
+            return command_vels
+        ux, uy = float(direction_xy[0]), float(direction_xy[1])
+        norm = math.sqrt(ux * ux + uy * uy)
+        if norm < 1e-3:
+            return command_vels
+        ux /= norm
+        uy /= norm
+        lx, ly = -uy, ux
+
+        positions = {}
+        forward_speeds = {}
+        for drone_id, vel in command_vels.items():
+            st = self.latest_states.get(drone_id)
+            if st is None:
+                continue
+            px, py = self._state_world_xy(st)
+            positions[drone_id] = (px, py)
+            forward_speeds[drone_id] = float(vel[0]) * ux + float(vel[1]) * uy
+
+        adjusted = dict(command_vels)
+        limited = []
+        for rear_id, rear_pos in positions.items():
+            rear_proj = rear_pos[0] * ux + rear_pos[1] * uy
+            rear_lat = rear_pos[0] * lx + rear_pos[1] * ly
+            nearest_front_id = None
+            nearest_gap = None
+            for front_id, front_pos in positions.items():
+                if front_id == rear_id:
+                    continue
+                front_proj = front_pos[0] * ux + front_pos[1] * uy
+                gap = front_proj - rear_proj
+                if gap <= 0.0:
+                    continue
+                front_lat = front_pos[0] * lx + front_pos[1] * ly
+                if abs(front_lat - rear_lat) > self.rear_lateral_window:
+                    continue
+                if nearest_gap is None or gap < nearest_gap:
+                    nearest_gap = gap
+                    nearest_front_id = front_id
+            if nearest_front_id is None or nearest_gap is None or nearest_gap >= self.rear_safe_dist:
+                continue
+
+            vx, vy, vz = adjusted[rear_id]
+            own_forward = vx * ux + vy * uy
+            lateral = vx * lx + vy * ly
+            front_forward = forward_speeds.get(nearest_front_id, 0.0)
+            max_forward = front_forward - self.rear_brake_gain * (self.rear_safe_dist - nearest_gap)
+            if own_forward <= max_forward:
+                continue
+            adjusted[rear_id] = (
+                max_forward * ux + lateral * lx,
+                max_forward * uy + lateral * ly,
+                vz,
+            )
+            limited.append((rear_id, nearest_front_id, nearest_gap, own_forward, max_forward))
+        if limited:
+            now_t = time.time()
+            if now_t - self._last_rear_safety_log_t >= 1.0:
+                self._last_rear_safety_log_t = now_t
+                parts = [
+                    f"x500_{rear}->x500_{front}:gap={gap:.2f},v={old_v:.2f}->{new_v:.2f}"
+                    for rear, front, gap, old_v, new_v in limited[:3]
+                ]
+                self.get_logger().info("rear safety limit: " + ", ".join(parts))
+        return adjusted
 
     def _publish_vel(self, drone_id, vx, vy, vz, yawspeed=0.0):
         tw = Twist()
@@ -717,6 +1004,7 @@ class FixedPointMission(Node):
         max_wait = max(float(duration), float(duration) * float(timeout_factor))
         reached_since = None
         wait_start = time.time()
+        last_wait_log_t = 0.0
         self.get_logger().info(
             f"{stage_name}: 等待全部无人机到达并保持，tol={reach_tolerance:.2f}m, "
             f"hold={reach_hold_sec:.1f}s, timeout={max_wait:.1f}s"
@@ -728,20 +1016,28 @@ class FixedPointMission(Node):
 
             all_ok = True
             max_dist = 0.0
+            wait_logs = []
             for drone_id, (x, y, z) in waypoints_dict.items():
                 st = self.latest_states.get(drone_id)
                 if st is None or not self._state_fresh(st, max_age_sec=state_timeout_sec):
                     all_ok = False
+                    wait_logs.append(f"x500_{drone_id}:state_timeout")
                     break
                 dx = float(st['x']) - float(x)
                 dy = float(st['y']) - float(y)
                 dz = float(st['z']) - float(z)
                 dist = math.sqrt(dx * dx + dy * dy + dz * dz)
                 max_dist = max(max_dist, dist)
+                wait_logs.append(f"x500_{drone_id}:{dist:.2f}")
                 if dist > reach_tolerance:
                     all_ok = False
 
             now_t = time.time()
+            if (not all_ok) and wait_logs and now_t - last_wait_log_t >= 1.0:
+                last_wait_log_t = now_t
+                self.get_logger().info(
+                    f"{stage_name}: waiting max_dist={max_dist:.2f}, " + ", ".join(wait_logs)
+                )
             if all_ok:
                 if reached_since is None:
                     reached_since = now_t
@@ -912,6 +1208,22 @@ class FixedPointMission(Node):
             heading=leader_heading0,
             max_age_sec=state_timeout_sec,
         )
+        if use_virtual_leader and self._use_consensus_estimator():
+            consensus_refs = self._update_consensus_estimates(
+                follower_offsets,
+                use_heading_offsets=use_heading_offsets,
+                heading=leader_heading0,
+                max_age_sec=state_timeout_sec,
+            )
+            consensus_ref = self._average_xyz(consensus_refs.values())
+            if consensus_ref is not None:
+                estimated_virtual_ref = consensus_ref
+            now_t = time.time()
+            if now_t - self._last_consensus_log_t >= 1.0:
+                self._last_consensus_log_t = now_t
+                self.get_logger().info(
+                    f"{stage_name}: consensus estimator active, topology={self.consensus_topology}"
+                )
         if use_virtual_leader and estimated_virtual_ref is not None:
             virtual_ref = estimated_virtual_ref
         elif leader_state_fresh:
@@ -928,6 +1240,7 @@ class FixedPointMission(Node):
         stage_min_pair_dist = None
         reached_since = None
         stage_start_t = time.time()
+        virtual_lag_paused = False
 
         while time.time() - stage_start_t < max_duration:
             # Gazebo target marker changes should drive mission target updates.
@@ -965,54 +1278,149 @@ class FixedPointMission(Node):
             base_y = float(metric_state['y'])
             base_z = float(metric_state['z'])
             leader_heading = float(metric_state.get('heading', 0.0))
+            per_drone_refs = None
+            per_drone_ffs = None
             if use_virtual_leader:
-                max_virtual_lag = 0.0
-                max_virtual_lag_drone = 0
-                all_virtual_states_fresh = True
-                for lag_drone_id in range(1, self.num_drones + 1):
-                    lag_state = self.latest_states.get(lag_drone_id)
-                    if lag_state is None or not self._state_fresh(lag_state, max_age_sec=state_timeout_sec):
-                        all_virtual_states_fresh = False
-                        break
-                    dx, dy, dz = follower_offsets[lag_drone_id]
-                    if use_heading_offsets:
-                        rdx, rdy = self._rotate_offset_by_heading(dx, dy, leader_heading)
-                    else:
-                        rdx, rdy = dx, dy
-                    lag_ref = (
-                        float(virtual_ref[0]) + rdx,
-                        float(virtual_ref[1]) + rdy,
-                        float(virtual_ref[2]) + dz,
+                if self._use_consensus_estimator():
+                    consensus_refs = self._update_consensus_estimates(
+                        follower_offsets,
+                        use_heading_offsets=use_heading_offsets,
+                        heading=leader_heading,
+                        max_age_sec=state_timeout_sec,
                     )
-                    lag_dist = self._distance_xyz(self._state_xyz(lag_state), lag_ref)
-                    if lag_dist > max_virtual_lag:
-                        max_virtual_lag = lag_dist
-                        max_virtual_lag_drone = lag_drone_id
-                virtual_lag_limit = max(1.8, reach_tolerance * 2.0)
-                if all_virtual_states_fresh and max_virtual_lag <= virtual_lag_limit:
-                    virtual_ref, virtual_vel = self._advance_virtual_point(
-                        virtual_ref,
-                        leader_target,
-                        max_leader_speed,
-                        sleep_dt,
-                    )
-                else:
-                    virtual_vel = (0.0, 0.0, 0.0)
-                    now_t = time.time()
-                    if now_t - self._last_failsafe_log_t >= 1.0:
-                        self._last_failsafe_log_t = now_t
-                        if all_virtual_states_fresh:
-                            self.get_logger().warn(
-                                f'{stage_name}: virtual leader paused, '
-                                f'max_lag=x500_{max_virtual_lag_drone}:{max_virtual_lag:.2f}m '
-                                f'> limit={virtual_lag_limit:.2f}m'
-                            )
+                    consensus_corrections = self._consensus_corrections_xy(consensus_refs)
+                    max_virtual_lag = 0.0
+                    max_virtual_lag_drone = 0
+                    all_virtual_states_fresh = True
+                    for lag_drone_id in range(1, self.num_drones + 1):
+                        lag_state = self.latest_states.get(lag_drone_id)
+                        if lag_state is None or not self._state_fresh(lag_state, max_age_sec=state_timeout_sec):
+                            all_virtual_states_fresh = False
+                            break
+                        dx, dy, dz = follower_offsets[lag_drone_id]
+                        if use_heading_offsets:
+                            rdx, rdy = self._rotate_offset_by_heading(dx, dy, leader_heading)
                         else:
-                            self.get_logger().warn(f'{stage_name}: virtual leader paused, swarm state incomplete')
-                leader_ref = virtual_ref
-                leader_ff = virtual_vel
-                formation_ref = virtual_ref
-                formation_ff = virtual_vel
+                            rdx, rdy = dx, dy
+                        corr_x, corr_y = consensus_corrections.get(lag_drone_id, (0.0, 0.0))
+                        lag_ref = (
+                            float(virtual_ref[0]) + rdx + corr_x,
+                            float(virtual_ref[1]) + rdy + corr_y,
+                            float(virtual_ref[2]) + dz,
+                        )
+                        lag_dist = self._distance_xyz(self._state_xyz(lag_state), lag_ref)
+                        if lag_dist > max_virtual_lag:
+                            max_virtual_lag = lag_dist
+                            max_virtual_lag_drone = lag_drone_id
+                    pause_limit = max(float(self.virtual_lag_pause_limit), reach_tolerance * 2.5)
+                    resume_limit = min(float(self.virtual_lag_resume_limit), pause_limit - 0.1)
+                    if all_virtual_states_fresh:
+                        if virtual_lag_paused:
+                            can_advance_virtual = max_virtual_lag <= resume_limit
+                            if can_advance_virtual:
+                                virtual_lag_paused = False
+                        else:
+                            can_advance_virtual = max_virtual_lag <= pause_limit
+                            if not can_advance_virtual:
+                                virtual_lag_paused = True
+                    else:
+                        can_advance_virtual = False
+                        virtual_lag_paused = True
+                    if can_advance_virtual:
+                        virtual_ref, virtual_vel = self._advance_virtual_point(
+                            virtual_ref,
+                            leader_target,
+                            max_leader_speed,
+                            sleep_dt,
+                        )
+                    else:
+                        virtual_vel = (0.0, 0.0, 0.0)
+                        now_t = time.time()
+                        if now_t - self._last_failsafe_log_t >= 1.0:
+                            self._last_failsafe_log_t = now_t
+                            if all_virtual_states_fresh:
+                                self.get_logger().warn(
+                                    f'{stage_name}: shared virtual leader paused, '
+                                    f'max_lag=x500_{max_virtual_lag_drone}:{max_virtual_lag:.2f}m '
+                                    f'(pause>{pause_limit:.2f}m, resume<{resume_limit:.2f}m)'
+                                )
+                            else:
+                                self.get_logger().warn(f'{stage_name}: shared virtual leader paused, swarm state incomplete')
+                    per_drone_refs = {}
+                    per_drone_ffs = {}
+                    for drone_id in range(1, self.num_drones + 1):
+                        corr_x, corr_y = consensus_corrections.get(drone_id, (0.0, 0.0))
+                        per_drone_refs[drone_id] = (
+                            float(virtual_ref[0]) + corr_x,
+                            float(virtual_ref[1]) + corr_y,
+                            float(virtual_ref[2]),
+                        )
+                        per_drone_ffs[drone_id] = virtual_vel
+                    leader_ref = virtual_ref
+                    leader_ff = virtual_vel
+                    formation_ref = virtual_ref
+                    formation_ff = virtual_vel
+                else:
+                    max_virtual_lag = 0.0
+                    max_virtual_lag_drone = 0
+                    all_virtual_states_fresh = True
+                    for lag_drone_id in range(1, self.num_drones + 1):
+                        lag_state = self.latest_states.get(lag_drone_id)
+                        if lag_state is None or not self._state_fresh(lag_state, max_age_sec=state_timeout_sec):
+                            all_virtual_states_fresh = False
+                            break
+                        dx, dy, dz = follower_offsets[lag_drone_id]
+                        if use_heading_offsets:
+                            rdx, rdy = self._rotate_offset_by_heading(dx, dy, leader_heading)
+                        else:
+                            rdx, rdy = dx, dy
+                        lag_ref = (
+                            float(virtual_ref[0]) + rdx,
+                            float(virtual_ref[1]) + rdy,
+                            float(virtual_ref[2]) + dz,
+                        )
+                        lag_dist = self._distance_xyz(self._state_xyz(lag_state), lag_ref)
+                        if lag_dist > max_virtual_lag:
+                            max_virtual_lag = lag_dist
+                            max_virtual_lag_drone = lag_drone_id
+                    pause_limit = max(float(self.virtual_lag_pause_limit), reach_tolerance * 2.5)
+                    resume_limit = min(float(self.virtual_lag_resume_limit), pause_limit - 0.1)
+                    if all_virtual_states_fresh:
+                        if virtual_lag_paused:
+                            can_advance_virtual = max_virtual_lag <= resume_limit
+                            if can_advance_virtual:
+                                virtual_lag_paused = False
+                        else:
+                            can_advance_virtual = max_virtual_lag <= pause_limit
+                            if not can_advance_virtual:
+                                virtual_lag_paused = True
+                    else:
+                        can_advance_virtual = False
+                        virtual_lag_paused = True
+                    if can_advance_virtual:
+                        virtual_ref, virtual_vel = self._advance_virtual_point(
+                            virtual_ref,
+                            leader_target,
+                            max_leader_speed,
+                            sleep_dt,
+                        )
+                    else:
+                        virtual_vel = (0.0, 0.0, 0.0)
+                        now_t = time.time()
+                        if now_t - self._last_failsafe_log_t >= 1.0:
+                            self._last_failsafe_log_t = now_t
+                            if all_virtual_states_fresh:
+                                self.get_logger().warn(
+                                    f'{stage_name}: virtual leader paused, '
+                                    f'max_lag=x500_{max_virtual_lag_drone}:{max_virtual_lag:.2f}m '
+                                    f'(pause>{pause_limit:.2f}m, resume<{resume_limit:.2f}m)'
+                                )
+                            else:
+                                self.get_logger().warn(f'{stage_name}: virtual leader paused, swarm state incomplete')
+                    leader_ref = virtual_ref
+                    leader_ff = virtual_vel
+                    formation_ref = virtual_ref
+                    formation_ff = virtual_vel
             else:
                 leader_ref = (
                     float(leader_target[0]),
@@ -1039,6 +1447,7 @@ class FixedPointMission(Node):
                 leader_vz = lvz
 
             err_values = []
+            command_vels = {}
             for drone_id in range(1, self.num_drones + 1):
                 if (not use_virtual_leader) and drone_id == self.leader_id:
                     continue
@@ -1047,9 +1456,15 @@ class FixedPointMission(Node):
                     rdx, rdy = self._rotate_offset_by_heading(dx, dy, leader_heading)
                 else:
                     rdx, rdy = dx, dy
-                ref_x = float(formation_ref[0]) + rdx
-                ref_y = float(formation_ref[1]) + rdy
-                ref_z = float(formation_ref[2]) + dz
+                drone_ref = per_drone_refs.get(drone_id) if per_drone_refs else None
+                drone_ff = per_drone_ffs.get(drone_id) if per_drone_ffs else None
+                if drone_ref is None:
+                    drone_ref = formation_ref
+                if drone_ff is None:
+                    drone_ff = formation_ff
+                ref_x = float(drone_ref[0]) + rdx
+                ref_y = float(drone_ref[1]) + rdy
+                ref_z = float(drone_ref[2]) + dz
 
                 st = self.latest_states.get(drone_id)
                 if st is None or not self._state_fresh(st, max_age_sec=state_timeout_sec):
@@ -1059,16 +1474,30 @@ class FixedPointMission(Node):
                 ex = ref_x - float(st['x'])
                 ey = ref_y - float(st['y'])
                 ez = ref_z - float(st['z'])
-                vx = float(formation_ff[0]) + formation_kp * ex
-                vy = float(formation_ff[1]) + formation_kp * ey
-                vz = float(formation_ff[2]) + formation_kp * ez
+                vx = float(drone_ff[0]) + formation_kp * ex
+                vy = float(drone_ff[1]) + formation_kp * ey
+                vz = float(drone_ff[2]) + formation_kp * ez
                 vx, vy, vz = self._limit_vector(vx, vy, vz, max_follower_speed)
-                self._publish_vel(drone_id, vx, vy, vz)
+                command_vels[drone_id] = (vx, vy, vz)
                 if drone_id == self.leader_id:
                     leader_vx = vx
                     leader_vy = vy
                     leader_vz = vz
                 err_values.append(math.sqrt(ex * ex + ey * ey + ez * ez))
+
+            safety_direction = (virtual_vel[0], virtual_vel[1])
+            if math.sqrt(float(safety_direction[0]) ** 2 + float(safety_direction[1]) ** 2) < 1e-3:
+                safety_direction = (
+                    float(leader_target[0]) - float(virtual_ref[0]),
+                    float(leader_target[1]) - float(virtual_ref[1]),
+                )
+            command_vels = self._apply_rear_safety_limit(command_vels, safety_direction)
+            for drone_id, (vx, vy, vz) in command_vels.items():
+                self._publish_vel(drone_id, vx, vy, vz)
+                if drone_id == self.leader_id:
+                    leader_vx = vx
+                    leader_vy = vy
+                    leader_vz = vz
 
             dist_logs = []
             ref_dist_values = []
@@ -1086,9 +1515,12 @@ class FixedPointMission(Node):
                         rdx, rdy = self._rotate_offset_by_heading(dx, dy, leader_heading)
                     else:
                         rdx, rdy = dx, dy
-                    tx = float(formation_ref[0]) + rdx
-                    ty = float(formation_ref[1]) + rdy
-                    tz = float(formation_ref[2]) + dz
+                    drone_ref = per_drone_refs.get(drone_id) if per_drone_refs else None
+                    if drone_ref is None:
+                        drone_ref = formation_ref
+                    tx = float(drone_ref[0]) + rdx
+                    ty = float(drone_ref[1]) + rdy
+                    tz = float(drone_ref[2]) + dz
                 dist = ((st['x'] - tx) ** 2 + (st['y'] - ty) ** 2 + (st['z'] - tz) ** 2) ** 0.5
                 ref_dist_values.append(dist)
                 dist_logs.append(f"x500_{drone_id}:{dist:.2f}")
@@ -1101,9 +1533,11 @@ class FixedPointMission(Node):
                     sj = self.latest_states.get(j)
                     if sj is None or not self._state_fresh(sj, max_age_sec=state_timeout_sec):
                         continue
+                    ix, iy = self._state_world_xy(si)
+                    jx, jy = self._state_world_xy(sj)
                     dij = math.sqrt(
-                        (float(si['x']) - float(sj['x'])) ** 2
-                        + (float(si['y']) - float(sj['y'])) ** 2
+                        (ix - jx) ** 2
+                        + (iy - jy) ** 2
                         + (float(si['z']) - float(sj['z'])) ** 2
                     )
                     if min_pair_dist is None or dij < min_pair_dist:

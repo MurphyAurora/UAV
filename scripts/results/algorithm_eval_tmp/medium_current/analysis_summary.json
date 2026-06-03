@@ -5,36 +5,46 @@
       "by_drone": {
         "1": {
           "avoidance_success": false,
-          "collision_free": false,
+          "collision_free": true,
           "has_nonzero_avoid_cmd": true,
-          "required_avoidance": true
+          "physical_collision_free": true,
+          "required_avoidance": true,
+          "safety_violation_free": false
         },
         "2": {
           "avoidance_success": false,
           "collision_free": false,
           "has_nonzero_avoid_cmd": true,
-          "required_avoidance": true
+          "physical_collision_free": false,
+          "required_avoidance": true,
+          "safety_violation_free": false
         },
         "3": {
           "avoidance_success": true,
           "collision_free": true,
           "has_nonzero_avoid_cmd": true,
-          "required_avoidance": true
+          "physical_collision_free": true,
+          "required_avoidance": true,
+          "safety_violation_free": true
         },
         "4": {
           "avoidance_success": true,
           "collision_free": true,
           "has_nonzero_avoid_cmd": true,
-          "required_avoidance": true
+          "physical_collision_free": true,
+          "required_avoidance": true,
+          "safety_violation_free": true
         },
         "5": {
           "avoidance_success": true,
           "collision_free": true,
           "has_nonzero_avoid_cmd": true,
-          "required_avoidance": true
+          "physical_collision_free": true,
+          "required_avoidance": true,
+          "safety_violation_free": true
         }
       },
-      "definition": "For drones entering the obstacle influence zone, success requires nonzero avoid command and zero collision events.",
+      "definition": "For drones entering the obstacle influence zone, success requires nonzero avoid command and zero safety_violation events.",
       "required_drone_count": 5,
       "successful_drone_count": 3
     },
@@ -106,13 +116,15 @@
       }
     },
     "definitions": {
-      "avoidance_success_rate": "Among drones entering influence zone, fraction with nonzero avoid command and no collision.",
-      "collision": "3D distance <= drone_radius + obstacle_radius + safe_margin.",
+      "avoidance_success_rate": "Among drones entering influence zone, fraction with nonzero avoid command and no safety_violation.",
       "control_smoothness": "RMS/max changes of avoid_cmd velocity, acceleration-like delta/dt, and jerk-like difference.",
-      "min_safety_distance": "Minimum clearance after subtracting drone radius, obstacle radius, and safe margin.",
+      "min_physical_clearance": "Minimum clearance after subtracting drone radius and obstacle radius.",
+      "min_safety_clearance": "Minimum clearance after subtracting drone radius, obstacle radius, and safe margin.",
       "path_length": "Sum of consecutive drone world-position distances.",
+      "physical_collision": "3D distance <= drone_radius + obstacle_radius. A physical collision invalidates later task completion.",
       "real_time_factor": "scene_time duration / wall-clock recording duration from obstacle messages.",
-      "task_time": "If target is configured, max completion time among drones; otherwise recording duration."
+      "safety_violation": "3D distance <= drone_radius + obstacle_radius + safe_margin.",
+      "task_time": "If target is configured, max completion time among non-collided drones; otherwise recording duration."
     },
     "path": {
       "1": {
@@ -191,19 +203,28 @@
             "obstacle_x": 17.0,
             "obstacle_y": 0.535892,
             "obstacle_z": -3.0,
+            "physical_clearance": 0.015327355557422817,
             "safety_clearance": -0.5846726444425772,
             "scene_time": 81.464108,
             "time": 1780023243.574934
           },
-          "collision_events": 1,
-          "collision_rate_samples": 0.009279881217520415,
-          "collision_samples": 25,
+          "collision_events": 0,
+          "collision_rate_samples": 0.0,
+          "collision_samples": 0,
+          "first_physical_collision_time": null,
           "influence_samples": 349,
           "min_distance_3d": 0.8653273555574228,
           "min_distance_xy": 0.8253482610510561,
+          "min_physical_clearance": 0.015327355557422817,
           "min_safety_clearance": -0.5846726444425772,
           "near_miss_rate_samples": 0.018188567186340016,
           "near_miss_samples": 49,
+          "physical_collision_events": 0,
+          "physical_collision_rate_samples": 0.0,
+          "physical_collision_samples": 0,
+          "safety_violation_events": 1,
+          "safety_violation_rate_samples": 0.009279881217520415,
+          "safety_violation_samples": 25,
           "samples": 2694
         },
         "2": {
@@ -218,19 +239,28 @@
             "obstacle_x": 23.097955,
             "obstacle_y": 2.636,
             "obstacle_z": -3.0,
-            "safety_clearance": -1.1435787285871155,
+            "physical_clearance": -0.5435787285871156,
+            "safety_clearance": -1.1435787285871157,
             "scene_time": 96.305361,
             "time": 1780023258.042544
           },
-          "collision_events": 1,
-          "collision_rate_samples": 0.013363028953229399,
-          "collision_samples": 36,
+          "collision_events": 2,
+          "collision_rate_samples": 0.007052709725315516,
+          "collision_samples": 19,
+          "first_physical_collision_time": 1780023257.640933,
           "influence_samples": 284,
           "min_distance_3d": 0.2564212714128844,
           "min_distance_xy": 0.255498535567232,
-          "min_safety_clearance": -1.1435787285871155,
+          "min_physical_clearance": -0.5435787285871156,
+          "min_safety_clearance": -1.1435787285871157,
           "near_miss_rate_samples": 0.025241276911655532,
           "near_miss_samples": 68,
+          "physical_collision_events": 2,
+          "physical_collision_rate_samples": 0.007052709725315516,
+          "physical_collision_samples": 19,
+          "safety_violation_events": 1,
+          "safety_violation_rate_samples": 0.013363028953229399,
+          "safety_violation_samples": 36,
           "samples": 2694
         },
         "3": {
@@ -245,19 +275,28 @@
             "obstacle_x": 20.403465,
             "obstacle_y": 2.792735,
             "obstacle_z": -3.0,
-            "safety_clearance": 0.3579112626074161,
+            "physical_clearance": 0.957911262607416,
+            "safety_clearance": 0.357911262607416,
             "scene_time": 94.274819,
             "time": 1780023256.04106
           },
           "collision_events": 0,
           "collision_rate_samples": 0.0,
           "collision_samples": 0,
+          "first_physical_collision_time": null,
           "influence_samples": 319,
           "min_distance_3d": 1.757911262607416,
           "min_distance_xy": 1.7569207538150375,
-          "min_safety_clearance": 0.3579112626074161,
+          "min_physical_clearance": 0.957911262607416,
+          "min_safety_clearance": 0.357911262607416,
           "near_miss_rate_samples": 0.009279881217520415,
           "near_miss_samples": 25,
+          "physical_collision_events": 0,
+          "physical_collision_rate_samples": 0.0,
+          "physical_collision_samples": 0,
+          "safety_violation_events": 0,
+          "safety_violation_rate_samples": 0.0,
+          "safety_violation_samples": 0,
           "samples": 2694
         },
         "4": {
@@ -272,19 +311,28 @@
             "obstacle_x": 26.366764,
             "obstacle_y": 5.91309,
             "obstacle_z": -3.0,
-            "safety_clearance": 0.6486432332158287,
+            "physical_clearance": 1.2486432332158286,
+            "safety_clearance": 0.6486432332158286,
             "scene_time": 99.906595,
             "time": 1780023261.974588
           },
           "collision_events": 0,
           "collision_rate_samples": 0.0,
           "collision_samples": 0,
+          "first_physical_collision_time": null,
           "influence_samples": 368,
           "min_distance_3d": 2.0486432332158286,
           "min_distance_xy": 2.048303823386805,
-          "min_safety_clearance": 0.6486432332158287,
+          "min_physical_clearance": 1.2486432332158286,
+          "min_safety_clearance": 0.6486432332158286,
           "near_miss_rate_samples": 0.0,
           "near_miss_samples": 0,
+          "physical_collision_events": 0,
+          "physical_collision_rate_samples": 0.0,
+          "physical_collision_samples": 0,
+          "safety_violation_events": 0,
+          "safety_violation_rate_samples": 0.0,
+          "safety_violation_samples": 0,
           "samples": 2694
         },
         "5": {
@@ -299,67 +347,128 @@
             "obstacle_x": 17.957214,
             "obstacle_y": 8.97633,
             "obstacle_z": -3.0,
-            "safety_clearance": 0.2528644528036781,
+            "physical_clearance": 0.852864452803678,
+            "safety_clearance": 0.252864452803678,
             "scene_time": 88.732144,
             "time": 1780023250.507929
           },
           "collision_events": 0,
           "collision_rate_samples": 0.0,
           "collision_samples": 0,
+          "first_physical_collision_time": null,
           "influence_samples": 358,
           "min_distance_3d": 1.652864452803678,
           "min_distance_xy": 1.6451430823056097,
-          "min_safety_clearance": 0.2528644528036781,
+          "min_physical_clearance": 0.852864452803678,
+          "min_safety_clearance": 0.252864452803678,
           "near_miss_rate_samples": 0.013734224201930215,
           "near_miss_samples": 37,
+          "physical_collision_events": 0,
+          "physical_collision_rate_samples": 0.0,
+          "physical_collision_samples": 0,
+          "safety_violation_events": 0,
+          "safety_violation_rate_samples": 0.0,
+          "safety_violation_samples": 0,
           "samples": 2694
         }
       },
       "collision_events_total": 2,
-      "collision_samples_total": 61,
+      "collision_samples_total": 19,
       "drone_radius": 0.35,
-      "global_min_safety_clearance": -1.1435787285871155,
+      "global_min_physical_clearance": -0.5435787285871156,
+      "global_min_safety_clearance": -1.1435787285871157,
       "influence_radius": 3.5,
       "influence_samples_total": 1678,
       "near_miss_margin": 0.5,
       "near_miss_samples_total": 179,
-      "safe_margin": 0.6
+      "physical_collision_drone_count": 1,
+      "physical_collision_events_total": 2,
+      "physical_collision_samples_total": 19,
+      "physical_collision_threshold_note": "physical_collision when distance_3d <= drone_radius + obstacle_radius",
+      "safe_margin": 0.6,
+      "safety_violation_drone_count": 2,
+      "safety_violation_events_total": 2,
+      "safety_violation_samples_total": 61,
+      "safety_violation_threshold_note": "safety_violation when distance_3d <= drone_radius + obstacle_radius + safe_margin"
     },
     "task": {
       "completion_by_drone": {
         "1": {
-          "completed": false,
-          "completion_time_sec": null,
-          "min_target_distance": 3.507531821734194
+          "completed": true,
+          "completion_time_sec": 155.25561094284058,
+          "first_physical_collision_time": null,
+          "invalid_after_physical_collision": false,
+          "min_target_distance": 0.022053123792332898,
+          "target_slot": {
+            "radius": 1.5,
+            "x": 32.0,
+            "y": 20.4,
+            "z": -3.0
+          }
         },
         "2": {
           "completed": false,
           "completion_time_sec": null,
-          "min_target_distance": 1.720873277276103
+          "first_physical_collision_time": 1780023257.640933,
+          "invalid_after_physical_collision": true,
+          "min_target_distance": 21.645261607509898,
+          "target_slot": {
+            "radius": 1.5,
+            "x": 32.0,
+            "y": 22.2,
+            "z": -3.0
+          }
         },
         "3": {
           "completed": true,
           "completion_time_sec": 155.25561094284058,
-          "min_target_distance": 0.025595386576491436
+          "first_physical_collision_time": null,
+          "invalid_after_physical_collision": false,
+          "min_target_distance": 0.025595386576491436,
+          "target_slot": {
+            "radius": 1.5,
+            "x": 32.0,
+            "y": 24.0,
+            "z": -3.0
+          }
         },
         "4": {
           "completed": true,
-          "completion_time_sec": 152.85537791252136,
-          "min_target_distance": 0.6062434943073611
+          "completion_time_sec": 155.25561094284058,
+          "first_physical_collision_time": null,
+          "invalid_after_physical_collision": false,
+          "min_target_distance": 0.021452832237259377,
+          "target_slot": {
+            "radius": 1.5,
+            "x": 32.0,
+            "y": 25.8,
+            "z": -3.0
+          }
         },
         "5": {
           "completed": true,
-          "completion_time_sec": 150.9226930141449,
-          "min_target_distance": 1.2855215727859266
+          "completion_time_sec": 155.25561094284058,
+          "first_physical_collision_time": null,
+          "invalid_after_physical_collision": false,
+          "min_target_distance": 0.01593848979671561,
+          "target_slot": {
+            "radius": 1.5,
+            "x": 32.0,
+            "y": 27.6,
+            "z": -3.0
+          }
         }
       },
-      "completion_rate": 0.6,
+      "completion_rate": 0.8,
       "mission_time_sec": null,
       "recording_duration_sec": 178.92181491851807,
       "target": {
+        "leader_id": 3,
+        "mode": "formation_slots",
         "radius": 1.5,
         "x": 32.0,
         "y": 24.0,
+        "y_spacing": 1.8,
         "z": -3.0
       },
       "target_configured": true

@@ -95,12 +95,18 @@ def plot_scoreboard(df, output_path):
     colors = _colors(df)
     fig, axes = plt.subplots(3, 2, figsize=(11, 8.0), dpi=180, sharex=True)
     axes = axes.ravel()
+    if 'physical_collision_events_total' not in df.columns and 'collision_events_total' in df.columns:
+        df = df.copy()
+        df['physical_collision_events_total'] = df['collision_events_total']
+    if 'safety_violation_events_total' not in df.columns and 'collision_events_total' in df.columns:
+        df = df.copy()
+        df['safety_violation_events_total'] = df['collision_events_total']
     specs = [
         ('completion_rate', 'Completion rate', (0.0, 1.0), '{:.0f}%', 100.0),
-        ('collision_events_total', 'Collision events', None, '{:.0f}', 1.0),
+        ('physical_collision_events_total', 'Physical collisions', None, '{:.0f}', 1.0),
+        ('safety_violation_events_total', 'Safety violations', None, '{:.0f}', 1.0),
         ('global_min_safety_clearance', 'Min safety clearance (m)', None, '{:.2f}', 1.0),
         ('avoidance_success_rate', 'Avoidance success rate', (0.0, 1.0), '{:.0f}%', 100.0),
-        ('control_jerk_rms_mean', 'Control jerk RMS', None, '{:.2f}', 1.0),
         ('real_time_factor', 'Real-time factor', None, '{:.2f}', 1.0),
     ]
     for ax, (col, title, ylim, fmt, scale) in zip(axes, specs):
@@ -124,10 +130,17 @@ def plot_scoreboard(df, output_path):
 
 
 def plot_table(df, output_path):
+    if 'physical_collision_events_total' not in df.columns and 'collision_events_total' in df.columns:
+        df = df.copy()
+        df['physical_collision_events_total'] = df['collision_events_total']
+    if 'safety_violation_events_total' not in df.columns and 'collision_events_total' in df.columns:
+        df = df.copy()
+        df['safety_violation_events_total'] = df['collision_events_total']
     cols = [
         ('scene_name', 'Scene'),
         ('completion_rate', 'Completion'),
-        ('collision_events_total', 'Collisions'),
+        ('physical_collision_events_total', 'Physical collisions'),
+        ('safety_violation_events_total', 'Safety violations'),
         ('near_miss_samples_total', 'Near miss samples'),
         ('global_min_safety_clearance', 'Min clearance'),
         ('avoidance_success_rate', 'Avoid success'),
@@ -141,7 +154,7 @@ def plot_table(df, output_path):
             table[label] = df[col].astype(str)
         elif col in ('completion_rate', 'avoidance_success_rate'):
             table[label] = pd.to_numeric(df[col], errors='coerce').fillna(0.0).map(lambda v: f'{100.0 * v:.0f}%')
-        elif col in ('collision_events_total', 'near_miss_samples_total'):
+        elif col in ('physical_collision_events_total', 'safety_violation_events_total', 'near_miss_samples_total'):
             table[label] = pd.to_numeric(df[col], errors='coerce').fillna(0.0).map(lambda v: f'{v:.0f}')
         else:
             table[label] = pd.to_numeric(df[col], errors='coerce').map(lambda v: '' if pd.isna(v) else f'{v:.2f}')
